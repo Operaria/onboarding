@@ -221,6 +221,35 @@ function renderInput(
       />
     );
   }
+  if (pregunta.tipo === "likert") {
+    const current = (valor as string) ?? "";
+    const opciones = pregunta.opciones ?? ["Nunca", "Ocasionalmente", "Frecuentemente", "Siempre"];
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+        {opciones.map((op, i) => {
+          const isSelected = current === op;
+          return (
+            <button
+              key={op}
+              type="button"
+              onClick={() => onChange(op)}
+              aria-pressed={isSelected}
+              className={`flex flex-col items-center justify-center py-3 px-2 rounded-lg border-2 transition-all text-center min-h-[64px] cursor-pointer ${
+                isSelected
+                  ? "border-teal bg-teal/[0.10] text-navy font-semibold shadow-sm"
+                  : "border-border bg-white text-body hover:border-teal/40 hover:bg-teal/[0.04]"
+              }`}
+            >
+              <span className="text-[14px] leading-tight">{op}</span>
+              <span className={`text-[11px] mt-0.5 font-mono ${isSelected ? "text-teal" : "text-muted"}`}>
+                {i + 1}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   if (pregunta.tipo === "cards") {
     return <Cards pregunta={pregunta} valor={valor as string | undefined} onChange={onChange} />;
   }

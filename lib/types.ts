@@ -10,7 +10,8 @@ export type TipoPregunta =
   | "tabla"
   | "boolean"
   | "time"
-  | "cards";
+  | "cards"
+  | "likert";
 
 export interface CardOption {
   value: string;            // enum guardado en respuestas

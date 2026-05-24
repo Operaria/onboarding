@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { PDFDiagnostico } from "@/components/PDFDiagnostico";
+import { PDFSpm2Report } from "@/components/PDFSpm2Report";
 import { formatDate } from "@/lib/utils";
 import { getVertical } from "@/lib/verticals";
 import { entradaLabels, OPT_NO_TENGO_GOOGLE } from "@/lib/verticals/barber";
+import { calculateSpm2Scores, classificationLabelEs } from "@/lib/spm2";
+import type { FormType } from "@/lib/spm2";
 import type { SubmitPayload, RespuestaValor } from "@/lib/types";
 import React from "react";
 
@@ -81,16 +84,48 @@ export async function POST(req: NextRequest) {
 
     const vertical = getVertical(payload.vertical ?? "generico");
     const fecha = formatDate(new Date(payload.timestamp || Date.now()));
+    const isSpm2 = vertical.id === "spm2-hogar" || vertical.id === "spm2-escolar";
 
-    const element = React.createElement(PDFDiagnostico, {
-      nombre: payload.nombreFormateado,
-      fecha,
-      bloques: vertical.bloques,
-      respuestas: payload.respuestas,
-      titulo: vertical.nombreEncuesta,
-    });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfBuffer = await renderToBuffer(element as any);
+    let pdfBuffer: Buffer;
+    let subject: string;
+    let html: string;
+
+    if (isSpm2) {
+      // ── SPM-2: scoring + reporte clínico ──
+      const formType: FormType = vertical.id === "spm2-hogar" ? "hogar" : "escolar";
+      const prefix = formType === "hogar" ? "h" : "e";
+      const result = calculateSpm2Scores(payload.respuestas, formType, prefix);
+
+      const element = React.createElement(PDFSpm2Report, {
+        nombre: payload.nombreFormateado,
+        estudiante: payload.negocio || "—",
+        fecha,
+        result,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+
+      const formLabel = formType === "hogar" ? "HOGAR" : "ESCOLAR";
+      subject = `SPM-2 ${formLabel} — ${payload.negocio || payload.nombreFormateado}`;
+      html = spm2HtmlBody(payload, result, formLabel);
+    } else {
+      // ── Flujo original (diagnóstico/onboarding) ──
+      const element = React.createElement(PDFDiagnostico, {
+        nombre: payload.nombreFormateado,
+        fecha,
+        bloques: vertical.bloques,
+        respuestas: payload.respuestas,
+        titulo: vertical.nombreEncuesta,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+
+      subject =
+        vertical.id === "web"
+          ? `web-${payload.cliente}-${payload.negocio ?? "sin-negocio"}`
+          : `Onboarding ${vertical.id} — ${payload.nombreFormateado}`;
+      html = htmlBody(payload, vertical.nombreEncuesta);
+    }
 
     const apiKey = process.env.RESEND_API_KEY;
     const to = process.env.DESTINATION_EMAIL;
@@ -100,18 +135,17 @@ export async function POST(req: NextRequest) {
     }
 
     const resend = new Resend(apiKey);
-    const subject =
-      vertical.id === "web"
-        ? `web-${payload.cliente}-${payload.negocio ?? "sin-negocio"}`
-        : `Onboarding ${vertical.id} — ${payload.nombreFormateado}`;
+    const filename = isSpm2
+      ? `SPM2-${vertical.id === "spm2-hogar" ? "Hogar" : "Escolar"}-${payload.negocio || payload.cliente}.pdf`
+      : `Levantamiento-${payload.negocio || payload.cliente}.pdf`;
     const { error } = await resend.emails.send({
       from,
       to,
       subject,
-      html: htmlBody(payload, vertical.nombreEncuesta),
+      html,
       attachments: [
         {
-          filename: `Levantamiento-${payload.negocio || payload.cliente}.pdf`,
+          filename,
           content: pdfBuffer,
         },
       ],
@@ -125,4 +159,59 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : "Error desconocido";
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
+}
+
+// ─── Email HTML para resultados SPM-2 ───────────────────────────────────────
+
+import type { Spm2Result } from "@/lib/spm2";
+
+function spm2HtmlBody(p: SubmitPayload, result: Spm2Result, formLabel: string): string {
+  const areasHtml = result.areaScores.map((s) => {
+    const color = s.classification === "typical" ? "#4A9B93"
+      : s.classification === "some_problems" ? "#E8A838"
+      : "#C0392B";
+    return `<tr>
+      <td style="padding:6px 12px;border-bottom:1px solid #D6D2CB;font-size:13px;">${s.area.nameEs}</td>
+      <td style="padding:6px 12px;border-bottom:1px solid #D6D2CB;font-family:monospace;font-size:13px;text-align:center;">${s.rawScore}</td>
+      <td style="padding:6px 12px;border-bottom:1px solid #D6D2CB;font-family:monospace;font-size:13px;text-align:center;">${s.tScore}</td>
+      <td style="padding:6px 12px;border-bottom:1px solid #D6D2CB;font-size:12px;color:${color};font-weight:600;">${classificationLabelEs(s.classification)}</td>
+    </tr>`;
+  }).join("");
+
+  const totalColor = result.sensoryTotal.classification === "typical" ? "#4A9B93"
+    : result.sensoryTotal.classification === "some_problems" ? "#E8A838"
+    : "#C0392B";
+
+  return `
+  <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #F2F0EB; color: #3D4450;">
+    <div style="background: #1B4D4A; color: #fff; padding: 24px; border-radius: 8px 8px 0 0;">
+      <div style="color: #4A9B93; font-size: 11px; letter-spacing: 3px; text-transform: uppercase;">SPM-2 · ${formLabel}</div>
+      <h1 style="margin: 8px 0 0; font-size: 20px;">Resultados Procesamiento Sensorial</h1>
+      <p style="margin: 6px 0 0; color: #4A9B93; font-size: 14px;">Estudiante: ${p.negocio || p.nombreFormateado}</p>
+      <p style="margin: 4px 0 0; color: rgba(242,240,235,.6); font-size: 13px;">Respondió: ${p.nombreFormateado} (${result.respondentType})</p>
+    </div>
+    <div style="background: #fff; padding: 24px; border-radius: 0 0 8px 8px;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <thead>
+          <tr style="background:#0F1E3A;color:#fff;">
+            <th style="padding:8px 12px;text-align:left;font-size:12px;">Área</th>
+            <th style="padding:8px 12px;text-align:center;font-size:12px;">PB</th>
+            <th style="padding:8px 12px;text-align:center;font-size:12px;">T-Score</th>
+            <th style="padding:8px 12px;text-align:left;font-size:12px;">Clasificación</th>
+          </tr>
+        </thead>
+        <tbody>${areasHtml}</tbody>
+        <tfoot>
+          <tr style="background:#F2F0EB;font-weight:700;">
+            <td style="padding:8px 12px;font-size:13px;">TOTAL SENSORIAL</td>
+            <td style="padding:8px 12px;font-family:monospace;text-align:center;font-size:13px;">${result.sensoryTotal.rawScore}</td>
+            <td style="padding:8px 12px;font-family:monospace;text-align:center;font-size:13px;">${result.sensoryTotal.tScore}</td>
+            <td style="padding:8px 12px;font-size:12px;color:${totalColor};font-weight:700;">${classificationLabelEs(result.sensoryTotal.classification)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <hr style="border: none; border-top: 1px solid #D6D2CB; margin: 16px 0;">
+      <p style="color: #9E9C96; font-size: 12px;">Reporte PDF completo adjunto con interpretación clínica por área.</p>
+    </div>
+  </div>`;
 }

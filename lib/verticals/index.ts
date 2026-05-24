@@ -2,6 +2,8 @@ import type { Bloque, Respuestas } from "../types";
 import { bloques as genericoBloques, BLOQUE_DOLOR_IDS } from "../preguntas";
 import { barberBloques, barberValidarAlEnviar } from "./barber";
 import { webBloques, webValidarAlEnviar } from "./web";
+import { spm2HomeBloques, spm2HomeValidarAlEnviar } from "./spm2-hogar";
+import { spm2EscolarBloques, spm2EscolarValidarAlEnviar } from "./spm2-escolar";
 
 export interface Vertical {
   id: string;
@@ -43,6 +45,28 @@ export const verticals: Record<string, Vertical> = {
     tagline: "¡Encendamos tu página web!",
     subtitulo: "",
     cierre: "Listos para hacer brillar tu proyecto.",
+    tema: "paraguas",
+  },
+  "spm2-hogar": {
+    id: "spm2-hogar",
+    nombreEncuesta: "SPM-2 Formulario del Hogar (5–12 años)",
+    bloques: spm2HomeBloques,
+    validarAlEnviar: spm2HomeValidarAlEnviar,
+    marca: "Health",
+    tagline: "Sensory Processing Measure",
+    subtitulo: "Evaluación del procesamiento sensorial — Formulario completado por padre, madre o cuidador/a",
+    cierre: "Gracias por completar esta evaluación. Sus respuestas serán analizadas por el/la terapeuta ocupacional.",
+    tema: "paraguas",
+  },
+  "spm2-escolar": {
+    id: "spm2-escolar",
+    nombreEncuesta: "SPM-2 Formulario Escolar (5–12 años)",
+    bloques: spm2EscolarBloques,
+    validarAlEnviar: spm2EscolarValidarAlEnviar,
+    marca: "Health",
+    tagline: "Sensory Processing Measure",
+    subtitulo: "Evaluación del procesamiento sensorial — Formulario completado por profesor/a o educador/a",
+    cierre: "Gracias por completar esta evaluación. Sus respuestas serán analizadas por el/la terapeuta ocupacional.",
     tema: "paraguas",
   },
 };
