@@ -4,16 +4,6 @@ export function middleware(req: NextRequest) {
   const host = req.headers.get("host") || "";
   const url = req.nextUrl.clone();
 
-  if (host.startsWith("conectar.")) {
-    if (url.pathname === "/" || url.pathname === "") {
-      return NextResponse.redirect("https://operaria.cl");
-    }
-    if (!url.pathname.startsWith("/conectar/")) {
-      url.pathname = `/conectar${url.pathname}`;
-      return NextResponse.rewrite(url);
-    }
-  }
-
   if (host.startsWith("hands.")) {
     if (url.pathname === "/" || url.pathname === "") {
       return NextResponse.redirect("https://operaria.cl");
