@@ -114,6 +114,14 @@ export default function HandsToLauncher() {
           <p className="font-sans text-offwhite/75 text-[16px] mt-3 max-w-md leading-relaxed">
             Ingresa los datos y enviamos el link de la encuesta. El informe llega solo a tu correo.
           </p>
+          <a
+            href="/que-es/terapeuta"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block mt-5 font-sans font-semibold text-teal-light text-[14px] underline underline-offset-4 decoration-teal-light/40 hover:text-offwhite transition"
+          >
+            ¿Cómo funciona? →
+          </a>
         </div>
       </header>
 
