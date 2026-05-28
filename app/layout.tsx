@@ -32,11 +32,12 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://onboarding.operaria.cl"),
   title: {
-    default: "Operaria · Diagnóstico",
+    default: "Operaria",
     template: "%s · Operaria",
   },
-  description: "Encuesta de levantamiento — Operaria",
+  description: "Encuestas y evaluaciones — Operaria.",
   appleWebApp: {
     capable: true,
     title: "OperaHands",
@@ -44,6 +45,11 @@ export const metadata: Metadata = {
   },
   icons: {
     apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    siteName: "Operaria",
+    locale: "es_CL",
+    type: "website",
   },
 };
 

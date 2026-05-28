@@ -1,5 +1,16 @@
+import type { Metadata } from "next";
 import Cuestionario from "@/components/Cuestionario";
 import { slugToName } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "SPM-2 · Formulario del Hogar",
+  description: "Evaluación del procesamiento sensorial para responder en casa. Operaria Health · OperaHands.",
+  openGraph: {
+    title: "SPM-2 · Formulario del Hogar — Operaria Health",
+    description: "Una breve evaluación del procesamiento sensorial. Puedes escuchar cada pregunta en voz alta.",
+    images: ["/icon-512.png"],
+  },
+};
 
 export default async function Spm2HogarPage({
   params,
