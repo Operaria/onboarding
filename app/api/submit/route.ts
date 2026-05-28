@@ -128,7 +128,9 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = process.env.RESEND_API_KEY;
-    const to = process.env.DESTINATION_EMAIL;
+    // SPM-2: el informe va al correo del TO ingresado en el lanzador (fallback al correo fijo).
+    const isValidEmail = (e?: string) => !!e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    const to = isSpm2 && isValidEmail(payload.toEmail) ? payload.toEmail! : process.env.DESTINATION_EMAIL;
     const from = process.env.FROM_EMAIL || "onboarding@resend.dev";
     if (!apiKey || !to) {
       return NextResponse.json({ success: false, error: "Faltan variables de entorno" }, { status: 500 });

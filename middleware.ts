@@ -11,6 +11,8 @@ export function middleware(req: NextRequest) {
     if (
       !url.pathname.startsWith("/spm2-hogar/") &&
       !url.pathname.startsWith("/spm2-escolar/") &&
+      !url.pathname.startsWith("/que-es/") &&
+      !url.pathname.startsWith("/hands-to") &&
       !url.pathname.startsWith("/api/")
     ) {
       url.pathname = `/spm2-hogar${url.pathname}`;
@@ -28,6 +30,8 @@ export function middleware(req: NextRequest) {
       !url.pathname.startsWith("/diagnostico/") &&
       !url.pathname.startsWith("/spm2-hogar/") &&
       !url.pathname.startsWith("/spm2-escolar/") &&
+      !url.pathname.startsWith("/que-es/") &&
+      !url.pathname.startsWith("/hands-to") &&
       !url.pathname.startsWith("/api/")
     ) {
       url.pathname = `/barber${url.pathname}`;

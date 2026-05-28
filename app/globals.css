@@ -11,10 +11,13 @@
   --color-row-even: #FAFAF8;
   --color-border: #D6D2CB;
   --color-warm: #E8A838;
+  --color-teal-light: #7BC4BC;
+  --color-petrol-mid: #2A6B66;
 
   --font-sans: var(--font-syne);
   --font-mono: var(--font-dm-mono);
   --font-display: var(--font-cormorant);
+  --font-jakarta: var(--font-jakarta);
 }
 
 /* Operaria — Marca Paraguas (Studio, Health, etc.)
@@ -33,6 +36,23 @@
   font-family: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
   font-weight: 300;
   letter-spacing: 0.06em;
+}
+
+/* Operaria Health — línea hospitalaria/clínica.
+   Plus Jakarta Sans como voz principal; paleta petrol/teal/off-white (tokens base ya son Health).
+   Cuerpo más grande para legibilidad (familias, baja alfabetización). */
+.theme-health {
+  --color-petrol: #1B4D4A;
+  --color-teal: #4A9B93;
+  --color-navy: #0F1E3A;
+  --color-offwhite: #F2F0EB;
+  --color-body: #2F3A44;
+  --color-muted: #7C8A8A;
+  --color-border: #D6D2CB;
+  --font-sans: var(--font-jakarta);
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+  font-size: 17px;
+  letter-spacing: -0.1px;
 }
 
 html, body {

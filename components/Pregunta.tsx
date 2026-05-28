@@ -1,18 +1,61 @@
 "use client";
 
 import type { Pregunta as P, Respuestas, RespuestaValor, TablaFila, ColumnaTabla } from "@/lib/types";
+import { speakText } from "@/lib/speak";
 
 interface Props {
   pregunta: P;
   valor: RespuestaValor | undefined;
   respuestas?: Respuestas;
   onChange: (v: RespuestaValor) => void;
+  tema?: "flow" | "paraguas" | "health";
+  audio?: boolean;
 }
 
 const inputBase =
   "w-full font-sans text-[15px] text-body bg-white border border-border rounded px-3 py-2.5 transition-all outline-none focus:border-teal focus:ring-[3px] focus:ring-teal/15";
 
-export default function Pregunta({ pregunta, valor, respuestas, onChange }: Props) {
+function SpeakButton({ text }: { text: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => speakText(text)}
+      aria-label="Escuchar la pregunta en voz alta"
+      title="Escuchar"
+      className="shrink-0 mt-0.5 w-12 h-12 rounded-full bg-teal text-offwhite flex items-center justify-center shadow-sm hover:bg-petrol transition active:scale-95"
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M11 5 6 9H2v6h4l5 4V5z" />
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+      </svg>
+    </button>
+  );
+}
+
+export default function Pregunta({ pregunta, valor, respuestas, onChange, tema, audio }: Props) {
+  const isHealth = tema === "health";
+
+  if (isHealth) {
+    return (
+      <div className="mb-9">
+        <div className="flex items-start gap-3 mb-3">
+          {audio && <SpeakButton text={pregunta.label} />}
+          <label className="block font-sans font-semibold text-[19px] sm:text-[20px] text-navy leading-snug pt-1">
+            {pregunta.numero && (
+              <span className="font-mono text-teal text-[15px] font-medium mr-2">{pregunta.numero}</span>
+            )}
+            {pregunta.label}
+          </label>
+        </div>
+        {pregunta.hint && (
+          <p className="text-[15px] text-muted mb-3">{pregunta.hint}</p>
+        )}
+        {renderInput(pregunta, valor, onChange, respuestas, true)}
+      </div>
+    );
+  }
+
   return (
     <div className="mb-6">
       <label className="block font-sans font-semibold text-[15px] text-navy mb-2">
@@ -24,7 +67,7 @@ export default function Pregunta({ pregunta, valor, respuestas, onChange }: Prop
       {pregunta.hint && (
         <p className="text-[13px] text-muted -mt-1.5 mb-3">{pregunta.hint}</p>
       )}
-      {renderInput(pregunta, valor, onChange, respuestas)}
+      {renderInput(pregunta, valor, onChange, respuestas, false)}
     </div>
   );
 }
@@ -34,6 +77,7 @@ function renderInput(
   valor: RespuestaValor | undefined,
   onChange: (v: RespuestaValor) => void,
   respuestas?: Respuestas,
+  isHealth = false,
 ) {
   if (pregunta.tipo === "boolean") {
     const checked = valor === true;
@@ -224,6 +268,33 @@ function renderInput(
   if (pregunta.tipo === "likert") {
     const current = (valor as string) ?? "";
     const opciones = pregunta.opciones ?? ["Nunca", "Ocasionalmente", "Frecuentemente", "Siempre"];
+    if (isHealth) {
+      return (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+          {opciones.map((op, i) => {
+            const isSelected = current === op;
+            return (
+              <button
+                key={op}
+                type="button"
+                onClick={() => onChange(op)}
+                aria-pressed={isSelected}
+                className={`flex flex-col items-center justify-center py-5 px-3 rounded-xl border-2 transition-all text-center min-h-[92px] cursor-pointer ${
+                  isSelected
+                    ? "border-petrol bg-teal/[0.14] text-petrol font-semibold shadow-sm"
+                    : "border-border bg-white text-body hover:border-teal/50 hover:bg-teal/[0.05]"
+                }`}
+              >
+                <span className="text-[17px] leading-tight">{op}</span>
+                <span className={`text-[12px] mt-1 font-mono ${isSelected ? "text-teal" : "text-muted"}`}>
+                  {i + 1}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
     return (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
         {opciones.map((op, i) => {

@@ -19,8 +19,10 @@ export interface Vertical {
   subtitulo?: string;
   /** Frase de cierre al final del cuestionario. */
   cierre?: string;
-  /** Tema visual. "flow" = wordmark Syne + teal; "paraguas" = Cormorant + sage. */
-  tema?: "flow" | "paraguas";
+  /** Tema visual. "flow" = Syne + teal; "paraguas" = Cormorant + sage; "health" = Plus Jakarta Sans + petrol. */
+  tema?: "flow" | "paraguas" | "health";
+  /** Activa el botón de audio (lectura en voz alta) en cada pregunta. */
+  audio?: boolean;
 }
 
 export const verticals: Record<string, Vertical> = {
@@ -49,25 +51,27 @@ export const verticals: Record<string, Vertical> = {
   },
   "spm2-hogar": {
     id: "spm2-hogar",
-    nombreEncuesta: "SPM-2 Formulario del Hogar (5–12 años)",
+    nombreEncuesta: "SPM-2 · Formulario del Hogar",
     bloques: spm2HomeBloques,
     validarAlEnviar: spm2HomeValidarAlEnviar,
     marca: "Health",
-    tagline: "Sensory Processing Measure",
-    subtitulo: "Evaluación del procesamiento sensorial — Formulario completado por padre, madre o cuidador/a",
-    cierre: "Gracias por completar esta evaluación. Sus respuestas serán analizadas por el/la terapeuta ocupacional.",
-    tema: "paraguas",
+    tagline: "Sensory Processing Measure · 5 a 12 años",
+    subtitulo: "Medición del procesamiento sensorial. Lo responde el padre, la madre o quien cuida al niño o niña.",
+    cierre: "Gracias por completar esta evaluación. Sus respuestas serán analizadas por el o la terapeuta ocupacional.",
+    tema: "health",
+    audio: true,
   },
   "spm2-escolar": {
     id: "spm2-escolar",
-    nombreEncuesta: "SPM-2 Formulario Escolar (5–12 años)",
+    nombreEncuesta: "SPM-2 · Formulario Escolar",
     bloques: spm2EscolarBloques,
     validarAlEnviar: spm2EscolarValidarAlEnviar,
     marca: "Health",
-    tagline: "Sensory Processing Measure",
-    subtitulo: "Evaluación del procesamiento sensorial — Formulario completado por profesor/a o educador/a",
-    cierre: "Gracias por completar esta evaluación. Sus respuestas serán analizadas por el/la terapeuta ocupacional.",
-    tema: "paraguas",
+    tagline: "Sensory Processing Measure · 5 a 12 años",
+    subtitulo: "Medición del procesamiento sensorial en el aula. Lo responde el profesor, la profesora o educador/a.",
+    cierre: "Gracias por completar esta evaluación. Sus respuestas serán analizadas por el o la terapeuta ocupacional.",
+    tema: "health",
+    audio: true,
   },
 };
 

@@ -10,7 +10,7 @@ import Portada from "./Portada";
 import Bloque from "./Bloque";
 import SaveBar from "./SaveBar";
 
-interface Props { cliente: string; negocio: string; verticalId: string }
+interface Props { cliente: string; negocio: string; verticalId: string; toName?: string; toEmail?: string }
 
 type Status = { tone: "muted" | "teal" | "warm"; text: string };
 
@@ -19,7 +19,7 @@ const DEFAULT_STATUS: Status = {
   text: "Completa a tu ritmo. Cuando termines, haz clic en Enviar.",
 };
 
-export default function Cuestionario({ cliente, negocio, verticalId }: Props) {
+export default function Cuestionario({ cliente, negocio, verticalId, toName, toEmail }: Props) {
   const router = useRouter();
   const vertical = useMemo(() => getVertical(verticalId), [verticalId]);
   const nombre = useMemo(() => slugToName(cliente), [cliente]);
@@ -129,13 +129,15 @@ export default function Cuestionario({ cliente, negocio, verticalId }: Props) {
           vertical: vertical.id,
           respuestas,
           timestamp: new Date().toISOString(),
+          toName,
+          toEmail,
         }),
       });
       if (!res.ok) throw new Error("Error servidor");
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Error");
       clearRespuestas(storageSlug);
-      router.push(`/gracias?cliente=${encodeURIComponent(cliente)}`);
+      router.push(`/gracias?cliente=${encodeURIComponent(cliente)}&v=${vertical.id}`);
     } catch {
       setStatus({ tone: "warm", text: "Error al enviar. Por favor intenta de nuevo." });
       setEnviando(false);
@@ -160,8 +162,14 @@ export default function Cuestionario({ cliente, negocio, verticalId }: Props) {
   // Identify el "dolor block" id para poder scrollear desde el modal
   const dolorBloqueId = vertical.bloques.find((b) => b.preguntas.some((p) => dolorIds.includes(p.id)))?.id;
 
+  const temaClass =
+    vertical.tema === "paraguas" ? "theme-paraguas" : vertical.tema === "health" ? "theme-health" : undefined;
+
+  const infoHref =
+    vertical.id === "spm2-hogar" ? "/que-es/papas" : vertical.id === "spm2-escolar" ? "/que-es/profes" : undefined;
+
   return (
-    <div className={vertical.tema === "paraguas" ? "theme-paraguas" : undefined}>
+    <div className={temaClass}>
       <Portada
         nombre={nombre}
         negocio={negocio}
@@ -172,9 +180,10 @@ export default function Cuestionario({ cliente, negocio, verticalId }: Props) {
         tagline={vertical.tagline}
         subtitulo={vertical.subtitulo}
         tema={vertical.tema}
+        infoHref={infoHref}
       />
 
-      <div ref={contenidoRef} className="bg-offwhite">
+      <div ref={contenidoRef} id="contenido" className="bg-offwhite">
         <div className="max-w-[820px] mx-auto px-5 py-10 pb-32 sm:px-10 sm:py-16">
           {vertical.bloques.map((b) => (
             <Bloque
@@ -183,18 +192,20 @@ export default function Cuestionario({ cliente, negocio, verticalId }: Props) {
               respuestas={respuestas}
               onChange={handleChange}
               innerRef={b.id === dolorBloqueId ? bloqueDolorRef : undefined}
+              tema={vertical.tema}
+              audio={vertical.audio}
             />
           ))}
 
           <div className="mt-20 mb-8 py-10 border-t border-b border-teal text-center">
-            <p className="italic text-navy text-[20px] font-sans">
+            <p className={`italic font-sans ${vertical.tema === "health" ? "text-petrol text-[22px] leading-relaxed" : "text-navy text-[20px]"}`}>
               {vertical.cierre ?? "¡Listos para devolverte tu tiempo!"}
             </p>
           </div>
         </div>
       </div>
 
-      <SaveBar status={status} enviando={enviando} onEnviar={onEnviar} />
+      <SaveBar status={status} enviando={enviando} onEnviar={onEnviar} tema={vertical.tema} />
 
       {warningMensaje && (
         <div className="fixed inset-0 bg-black/60 z-[1000] flex items-center justify-center p-6">

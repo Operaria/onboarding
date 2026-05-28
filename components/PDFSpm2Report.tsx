@@ -262,10 +262,12 @@ export function PDFSpm2Report({ nombre, estudiante, fecha, result }: Props) {
           {formLabel}, obteniendo los siguientes resultados:
         </Text>
 
-        {result.areaScores.map((score) => (
+        {result.areaScores.map((score, idx) => (
           <View key={score.area.id} style={s.areaBlock} wrap={false}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={s.areaName}>● {score.area.nameEs}:</Text>
+              <Text style={s.areaName}>
+                {String(idx + 1).padStart(2, "0")} · {score.area.nameEs}
+              </Text>
             </View>
             <Text style={s.areaScore}>
               Puntaje bruto: {score.rawScore} · T-Score: {score.tScore}
@@ -301,7 +303,7 @@ export function PDFSpm2Report({ nombre, estudiante, fecha, result }: Props) {
 
         {/* Footer */}
         <View style={s.footer} fixed>
-          <Text style={s.footerText}>OperaHands · Operaria Health · operaria.cl</Text>
+          <Text style={s.footerText}>OperaHands · Operaria Health · Diseñado por Operaria · operaria.cl</Text>
           <Text style={s.footerText} render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
         </View>
       </Page>

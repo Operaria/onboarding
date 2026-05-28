@@ -6,10 +6,18 @@ export default async function Spm2HogarPage({
   searchParams,
 }: {
   params: Promise<{ cliente: string }>;
-  searchParams: Promise<{ negocio?: string; estudiante?: string }>;
+  searchParams: Promise<{ negocio?: string; estudiante?: string; ton?: string; toe?: string }>;
 }) {
   const { cliente } = await params;
   const sp = await searchParams;
   const negocio = sp.negocio ? slugToName(sp.negocio) : sp.estudiante ? slugToName(sp.estudiante) : "—";
-  return <Cuestionario cliente={cliente} negocio={negocio} verticalId="spm2-hogar" />;
+  return (
+    <Cuestionario
+      cliente={cliente}
+      negocio={negocio}
+      verticalId="spm2-hogar"
+      toName={sp.ton}
+      toEmail={sp.toe}
+    />
+  );
 }

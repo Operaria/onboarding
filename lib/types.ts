@@ -89,4 +89,7 @@ export interface SubmitPayload {
   vertical?: string;
   respuestas: Respuestas;
   timestamp: string;
+  /** Terapeuta ocupacional que recibe el informe (SPM-2 / Hands-TO). */
+  toName?: string;
+  toEmail?: string;
 }
