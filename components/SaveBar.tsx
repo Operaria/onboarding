@@ -5,9 +5,10 @@ interface Props {
   enviando: boolean;
   onEnviar: () => void;
   tema?: "flow" | "paraguas" | "health";
+  enviarLabel?: string;
 }
 
-export default function SaveBar({ status, enviando, onEnviar, tema }: Props) {
+export default function SaveBar({ status, enviando, onEnviar, tema, enviarLabel }: Props) {
   const isHealth = tema === "health";
   const toneClass =
     status.tone === "teal" ? "text-teal-light" : status.tone === "warm" ? "text-warm" : "text-offwhite/60";
@@ -25,7 +26,7 @@ export default function SaveBar({ status, enviando, onEnviar, tema }: Props) {
             isHealth ? "px-7 py-3 text-[16px] hover:bg-teal-light hover:text-petrol" : "px-5 py-2.5 text-[14px] hover:opacity-90"
           }`}
         >
-          {enviando ? "Enviando..." : "Enviar encuesta"}
+          {enviando ? "Enviando..." : (enviarLabel ?? "Enviar encuesta")}
         </button>
       </div>
     </div>

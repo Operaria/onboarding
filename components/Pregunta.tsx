@@ -321,6 +321,41 @@ function renderInput(
       </div>
     );
   }
+  if (pregunta.tipo === "escala7") {
+    const current = typeof valor === "number" ? valor : 0;
+    return (
+      <div>
+        <div className="grid grid-cols-7 gap-1.5 mt-3">
+          {[1, 2, 3, 4, 5, 6, 7].map((n) => {
+            const sel = current === n;
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => onChange(n)}
+                aria-pressed={sel}
+                className={`flex items-center justify-center rounded-lg border-2 transition-all cursor-pointer font-semibold ${
+                  isHealth ? "py-4 text-[18px]" : "py-2.5 text-[15px]"
+                } ${
+                  sel
+                    ? "border-petrol bg-teal/[0.16] text-petrol shadow-sm"
+                    : "border-border bg-white text-body hover:border-teal/50 hover:bg-teal/[0.05]"
+                }`}
+              >
+                {n}
+              </button>
+            );
+          })}
+        </div>
+        {(pregunta.labelMin || pregunta.labelMax) && (
+          <div className="flex justify-between mt-2 font-mono text-[11px] text-muted uppercase tracking-wider">
+            <span>{pregunta.labelMin}</span>
+            <span>{pregunta.labelMax}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
   if (pregunta.tipo === "cards") {
     return <Cards pregunta={pregunta} valor={valor as string | undefined} onChange={onChange} />;
   }

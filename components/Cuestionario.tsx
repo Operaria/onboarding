@@ -9,6 +9,8 @@ import { slugToName, formatDate } from "@/lib/utils";
 import Portada from "./Portada";
 import Bloque from "./Bloque";
 import SaveBar from "./SaveBar";
+import FimResultado from "./FimResultado";
+import { scoreFim, type FimResult } from "@/lib/fim";
 
 interface Props { cliente: string; negocio: string; verticalId: string; toName?: string; toEmail?: string; edad?: string }
 
@@ -32,6 +34,7 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
   const [enviando, setEnviando] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [warningMensaje, setWarningMensaje] = useState<string | null>(null);
+  const [fimResult, setFimResult] = useState<FimResult | null>(null);
 
   const contenidoRef = useRef<HTMLDivElement>(null);
   const bloqueDolorRef = useRef<HTMLDivElement>(null);
@@ -116,6 +119,14 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
   };
 
   const submit = async () => {
+    // FIM: aplicación y respuesta inmediata. Se calcula y se muestra en pantalla
+    // (sin correo). El TO la aplica y ve el resultado al instante.
+    if (vertical.id === "fim") {
+      setFimResult(scoreFim(respuestas));
+      clearRespuestas(storageSlug);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+      return;
+    }
     setEnviando(true);
     setStatus({ tone: "muted", text: "Enviando tus respuestas..." });
     try {
@@ -169,6 +180,10 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
   const infoHref =
     vertical.id === "spm2-hogar" ? "/que-es/papas" : vertical.id === "spm2-escolar" ? "/que-es/profes" : undefined;
 
+  if (fimResult) {
+    return <FimResultado result={fimResult} nombre={nombre} negocio={negocio} fecha={fecha} edad={edad} />;
+  }
+
   return (
     <div className={temaClass}>
       <Portada
@@ -206,7 +221,7 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
         </div>
       </div>
 
-      <SaveBar status={status} enviando={enviando} onEnviar={onEnviar} tema={vertical.tema} />
+      <SaveBar status={status} enviando={enviando} onEnviar={onEnviar} tema={vertical.tema} enviarLabel={vertical.id === "fim" ? "Ver resultado" : undefined} />
 
       {warningMensaje && (
         <div className="fixed inset-0 bg-black/60 z-[1000] flex items-center justify-center p-6">

@@ -11,7 +11,8 @@ export type TipoPregunta =
   | "boolean"
   | "time"
   | "cards"
-  | "likert";
+  | "likert"
+  | "escala7";
 
 export interface CardOption {
   value: string;            // enum guardado en respuestas

@@ -4,6 +4,7 @@ import { barberBloques, barberValidarAlEnviar } from "./barber";
 import { webBloques, webValidarAlEnviar } from "./web";
 import { spm2HomeBloques, spm2HomeValidarAlEnviar } from "./spm2-hogar";
 import { spm2EscolarBloques, spm2EscolarValidarAlEnviar } from "./spm2-escolar";
+import { fimBloques, fimValidarAlEnviar } from "./fim";
 
 export interface Vertical {
   id: string;
@@ -72,6 +73,17 @@ export const verticals: Record<string, Vertical> = {
     cierre: "Gracias por completar esta evaluación. Sus respuestas serán analizadas por el o la terapeuta ocupacional.",
     tema: "health",
     audio: true,
+  },
+  fim: {
+    id: "fim",
+    nombreEncuesta: "FIM · Medida de Independencia Funcional",
+    bloques: fimBloques,
+    validarAlEnviar: fimValidarAlEnviar,
+    marca: "Health",
+    tagline: "Chasis de prueba · pendiente de licencia",
+    subtitulo: "La aplica el o la terapeuta observando a la persona. Cada ítem se puntúa de 1 (más apoyo) a 7 (más autonomía).",
+    cierre: "Evaluación completada. Se calculan el total y los subtotales motor y cognitivo.",
+    tema: "health",
   },
 };
 
