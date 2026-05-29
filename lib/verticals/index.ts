@@ -31,6 +31,8 @@ export interface Vertical {
   metaNegocioLabel?: string;
   /** Oculta el campo de negocio en la portada (encuestas no comerciales). */
   ocultarNegocio?: boolean;
+  /** Eyebrow de cada bloque en tema health. Default "Área". "" = ocultar. */
+  bloqueEyebrow?: string;
 }
 
 export const verticals: Record<string, Vertical> = {
@@ -101,9 +103,10 @@ export const verticals: Record<string, Vertical> = {
     tagline: "Bienvenida",
     subtitulo: "Cuéntanos cómo trabajas y armamos tu asistente, hecha para ti.",
     cierre: "Gracias. Con esto armamos a Cindy a tu medida.",
-    tema: "paraguas",
+    tema: "health",
     metaClienteLabel: "Para",
     ocultarNegocio: true,
+    bloqueEyebrow: "",
   },
 };
 

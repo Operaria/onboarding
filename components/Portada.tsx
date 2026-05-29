@@ -50,11 +50,27 @@ export default function Portada({
         <div aria-hidden className="pointer-events-none absolute -bottom-44 right-20 w-[380px] h-[380px] rounded-full border border-teal-light/20" />
         <div className="relative z-[2] max-w-3xl w-full">
           <div className="font-mono text-teal-light text-[11px] uppercase tracking-[0.2em] mb-9 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span>Operaria Health</span>
-            <span className="text-offwhite/25">·</span>
-            <span>OperaHands</span>
-            <span className="text-offwhite/25">·</span>
-            <span>{marca === "Health" ? "SPM-2" : marca}</span>
+            {marca === "Health" ? (
+              <>
+                <span>Operaria Health</span>
+                <span className="text-offwhite/25">·</span>
+                <span>OperaHands</span>
+                <span className="text-offwhite/25">·</span>
+                <span>SPM-2</span>
+              </>
+            ) : (
+              <>
+                <span>Operaria</span>
+                <span className="text-offwhite/25">·</span>
+                <span>{marca}</span>
+                {tagline && (
+                  <>
+                    <span className="text-offwhite/25">·</span>
+                    <span>{tagline}</span>
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           <h1 className="font-display font-light text-offwhite leading-[1.05] tracking-[-0.5px] text-[clamp(46px,7.5vw,88px)]">
@@ -73,9 +89,11 @@ export default function Portada({
             </p>
           ) : null}
 
-          <p className="font-mono text-offwhite/70 text-[13px] leading-[1.9] tracking-[0.04em] max-w-xl border-l-2 border-teal-light pl-5 mt-9">
-            80 preguntas en 8 áreas. Responde con calma, a tu ritmo. Para escuchar una pregunta en voz alta, toca el botón de altavoz que está a su lado.
-          </p>
+          {marca === "Health" && (
+            <p className="font-mono text-offwhite/70 text-[13px] leading-[1.9] tracking-[0.04em] max-w-xl border-l-2 border-teal-light pl-5 mt-9">
+              80 preguntas en 8 áreas. Responde con calma, a tu ritmo. Para escuchar una pregunta en voz alta, toca el botón de altavoz que está a su lado.
+            </p>
+          )}
 
           {infoHref && (
             <a
@@ -89,8 +107,14 @@ export default function Portada({
           )}
 
           <div className="mt-12 flex flex-wrap gap-x-14 gap-y-5">
-            <MetaPairHealth label="Estudiante" value={negocio} />
-            <MetaPairHealth label="Responde" value={nombre} />
+            {mostrarNegocio ? (
+              <>
+                <MetaPairHealth label="Estudiante" value={negocio} />
+                <MetaPairHealth label="Responde" value={nombre} />
+              </>
+            ) : (
+              <MetaPairHealth label={clienteLabel} value={nombre} />
+            )}
             <MetaPairHealth label="Fecha" value={fecha} />
           </div>
 

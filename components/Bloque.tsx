@@ -11,17 +11,20 @@ interface Props {
   innerRef?: React.Ref<HTMLDivElement>;
   tema?: "flow" | "paraguas" | "health";
   audio?: boolean;
+  eyebrowLabel?: string;
 }
 
-export default function Bloque({ bloque, respuestas, onChange, innerRef, tema, audio }: Props) {
+export default function Bloque({ bloque, respuestas, onChange, innerRef, tema, audio, eyebrowLabel = "Área" }: Props) {
   const isHealth = tema === "health";
 
   if (isHealth) {
     return (
       <section ref={innerRef} className="mt-20">
-        <p className="font-mono text-teal text-[12px] uppercase tracking-[3px] mb-3">
-          Área {String(bloque.id + 1).padStart(2, "0")}
-        </p>
+        {eyebrowLabel && (
+          <p className="font-mono text-teal text-[12px] uppercase tracking-[3px] mb-3">
+            {eyebrowLabel} {String(bloque.id + 1).padStart(2, "0")}
+          </p>
+        )}
         <h1 className="font-sans font-semibold text-[30px] sm:text-[34px] text-petrol leading-tight border-b-2 border-teal pb-3">
           {bloque.titulo}
         </h1>

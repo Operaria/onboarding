@@ -213,6 +213,7 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
               innerRef={b.id === dolorBloqueId ? bloqueDolorRef : undefined}
               tema={vertical.tema}
               audio={vertical.audio}
+              eyebrowLabel={vertical.bloqueEyebrow}
             />
           ))}
 
