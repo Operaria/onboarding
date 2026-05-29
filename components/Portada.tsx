@@ -44,7 +44,7 @@ export default function Portada({
     return (
       <section
         className="relative min-h-screen flex flex-col justify-center px-7 py-20 sm:px-[9%] overflow-hidden text-offwhite"
-        style={{ background: "linear-gradient(165deg, #1B4D4A 0%, #2A6B66 100%)" }}
+        style={{ background: "linear-gradient(165deg, var(--color-petrol) 0%, var(--color-petrol-mid) 100%)" }}
       >
         <div aria-hidden className="pointer-events-none absolute -top-44 -right-28 w-[600px] h-[600px] rounded-full border border-offwhite/[0.08]" />
         <div aria-hidden className="pointer-events-none absolute -bottom-44 right-20 w-[380px] h-[380px] rounded-full border border-teal-light/20" />

@@ -55,6 +55,24 @@
   letter-spacing: -0.1px;
 }
 
+/* Operaria — Paleta "Self": tierras y rosas.
+   Capa de color sobre el layout health (se aplica junto a .theme-health).
+   Debe ir DESPUÉS de .theme-health para ganar la cascada de tokens. */
+.theme-self {
+  --color-petrol: #5B3A36;      /* tierra profunda — gradiente y títulos */
+  --color-petrol-mid: #7E5249;  /* terracota cálida — fin del gradiente */
+  --color-teal: #C07A6E;        /* rosa arcilla — acento, botón, subrayados */
+  --color-teal-light: #E8BDB2;  /* rosa suave — acentos sobre el fondo oscuro */
+  --color-navy: #43332E;        /* café cálido — introducciones */
+  --color-offwhite: #F6EDE4;    /* crema cálida */
+  --color-body: #4D3D37;        /* texto café cálido */
+  --color-muted: #A2917F;       /* topo cálido */
+  --color-border: #E2D3C6;      /* arena */
+}
+.theme-self input[type="range"] { accent-color: #C07A6E; }
+.theme-self input[type="checkbox"],
+.theme-self input[type="radio"] { accent-color: #C07A6E; }
+
 html, body {
   background: #F2F0EB;
   color: #3D4450;

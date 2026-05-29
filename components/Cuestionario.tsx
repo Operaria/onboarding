@@ -174,8 +174,10 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
   // Identify el "dolor block" id para poder scrollear desde el modal
   const dolorBloqueId = vertical.bloques.find((b) => b.preguntas.some((p) => dolorIds.includes(p.id)))?.id;
 
+  const temaBase =
+    vertical.tema === "paraguas" ? "theme-paraguas" : vertical.tema === "health" ? "theme-health" : "";
   const temaClass =
-    vertical.tema === "paraguas" ? "theme-paraguas" : vertical.tema === "health" ? "theme-health" : undefined;
+    [temaBase, vertical.paleta === "self" ? "theme-self" : ""].filter(Boolean).join(" ") || undefined;
 
   const infoHref =
     vertical.id === "spm2-hogar" ? "/que-es/papas" : vertical.id === "spm2-escolar" ? "/que-es/profes" : undefined;

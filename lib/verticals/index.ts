@@ -33,6 +33,8 @@ export interface Vertical {
   ocultarNegocio?: boolean;
   /** Eyebrow de cada bloque en tema health. Default "Área". "" = ocultar. */
   bloqueEyebrow?: string;
+  /** Capa de paleta sobre el tema. "self" = tierras y rosas (sobre layout health). */
+  paleta?: "self";
 }
 
 export const verticals: Record<string, Vertical> = {
@@ -107,6 +109,7 @@ export const verticals: Record<string, Vertical> = {
     metaClienteLabel: "Para",
     ocultarNegocio: true,
     bloqueEyebrow: "",
+    paleta: "self",
   },
 };
 
