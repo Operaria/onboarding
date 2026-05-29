@@ -11,6 +11,7 @@ const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 export default function HandsToLauncher() {
   const [formType, setFormType] = useState<FormType>("hogar");
   const [childName, setChildName] = useState("");
+  const [edad, setEdad] = useState("");
   const [respName, setRespName] = useState("");
   const [respEmail, setRespEmail] = useState("");
   const [toName, setToName] = useState("");
@@ -31,6 +32,7 @@ export default function HandsToLauncher() {
       negocio: nameToSlug(childName),
       ton: toName.trim(),
       toe: toEmail.trim(),
+      edad: edad.trim(),
     });
     return `${origin}/${path}/${nameToSlug(respName)}?${params.toString()}`;
   };
@@ -39,6 +41,15 @@ export default function HandsToLauncher() {
     setError("");
     if (!childName.trim() || !respName.trim() || !toName.trim()) {
       setError("Completa los nombres del niño/a, de quien responde y del terapeuta.");
+      return;
+    }
+    const edadNum = parseInt(edad, 10);
+    if (!edad.trim() || isNaN(edadNum)) {
+      setError("Ingresa la edad del niño o niña (en años).");
+      return;
+    }
+    if (edadNum < 5 || edadNum > 12) {
+      setError("El formulario SPM-2 Niño/a es para 5 a 12 años. Para otra edad corresponde otro instrumento (Preescolar o Adolescente).");
       return;
     }
     if (!emailOk(respEmail)) {
@@ -149,6 +160,14 @@ export default function HandsToLauncher() {
 
             <Label>Niño o niña evaluado/a</Label>
             <Input value={childName} onChange={setChildName} placeholder="Nombre del niño o niña" autoCapitalize="words" />
+            <Input
+              value={edad}
+              onChange={(v) => setEdad(v.replace(/[^0-9]/g, "").slice(0, 2))}
+              placeholder="Edad en años (5 a 12)"
+              type="number"
+              className="mt-3"
+            />
+            <p className="text-[13px] text-muted mt-2">El SPM-2 Niño/a está normado para 5 a 12 años.</p>
 
             <div className="h-px bg-border my-8" />
 

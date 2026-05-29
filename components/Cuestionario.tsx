@@ -10,7 +10,7 @@ import Portada from "./Portada";
 import Bloque from "./Bloque";
 import SaveBar from "./SaveBar";
 
-interface Props { cliente: string; negocio: string; verticalId: string; toName?: string; toEmail?: string }
+interface Props { cliente: string; negocio: string; verticalId: string; toName?: string; toEmail?: string; edad?: string }
 
 type Status = { tone: "muted" | "teal" | "warm"; text: string };
 
@@ -19,7 +19,7 @@ const DEFAULT_STATUS: Status = {
   text: "Completa a tu ritmo. Cuando termines, haz clic en Enviar.",
 };
 
-export default function Cuestionario({ cliente, negocio, verticalId, toName, toEmail }: Props) {
+export default function Cuestionario({ cliente, negocio, verticalId, toName, toEmail, edad }: Props) {
   const router = useRouter();
   const vertical = useMemo(() => getVertical(verticalId), [verticalId]);
   const nombre = useMemo(() => slugToName(cliente), [cliente]);
@@ -131,6 +131,7 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
           timestamp: new Date().toISOString(),
           toName,
           toEmail,
+          edad,
         }),
       });
       if (!res.ok) throw new Error("Error servidor");

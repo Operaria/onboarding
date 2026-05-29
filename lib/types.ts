@@ -92,4 +92,6 @@ export interface SubmitPayload {
   /** Terapeuta ocupacional que recibe el informe (SPM-2 / Hands-TO). */
   toName?: string;
   toEmail?: string;
+  /** Edad del niño/a en años (SPM-2 Niño/a: normado 5–12). */
+  edad?: string;
 }

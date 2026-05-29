@@ -54,8 +54,12 @@ export function calculateSpm2Scores(
 
     for (let i = area.itemStart; i <= area.itemEnd; i++) {
       const key = `${prefix}${i}`;
-      const val = likertToNumber(respuestas[key]);
+      let val = likertToNumber(respuestas[key]);
       if (val > 0) {
+        // SPM-2: los ítems de Participación Social (71–80) están redactados en
+        // positivo y se puntúan invertidos (Nunca=4 … Siempre=1), según la
+        // Scoring Worksheet oficial del formulario Niño/a 5–12 (Hogar y Escolar).
+        if (area.id === "SOC") val = 5 - val;
         rawScore += val;
         itemCount++;
       }

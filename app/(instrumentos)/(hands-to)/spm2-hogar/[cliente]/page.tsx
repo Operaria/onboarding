@@ -17,7 +17,7 @@ export default async function Spm2HogarPage({
   searchParams,
 }: {
   params: Promise<{ cliente: string }>;
-  searchParams: Promise<{ negocio?: string; estudiante?: string; ton?: string; toe?: string }>;
+  searchParams: Promise<{ negocio?: string; estudiante?: string; ton?: string; toe?: string; edad?: string }>;
 }) {
   const { cliente } = await params;
   const sp = await searchParams;
@@ -29,6 +29,7 @@ export default async function Spm2HogarPage({
       verticalId="spm2-hogar"
       toName={sp.ton}
       toEmail={sp.toe}
+      edad={sp.edad}
     />
   );
 }

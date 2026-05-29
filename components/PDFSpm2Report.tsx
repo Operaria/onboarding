@@ -179,9 +179,10 @@ interface Props {
   estudiante: string;
   fecha: string;
   result: Spm2Result;
+  edad?: string;
 }
 
-export function PDFSpm2Report({ nombre, estudiante, fecha, result }: Props) {
+export function PDFSpm2Report({ nombre, estudiante, fecha, result, edad }: Props) {
   const formLabel = result.formType === "hogar" ? "HOGAR" : "ESCOLAR";
   const totalClassLabel = classificationLabelEs(result.sensoryTotal.classification);
 
@@ -207,6 +208,12 @@ export function PDFSpm2Report({ nombre, estudiante, fecha, result }: Props) {
             <Text style={s.metaLabel}>Estudiante</Text>
             <Text style={s.metaValue}>{estudiante}</Text>
           </View>
+          {edad ? (
+            <View>
+              <Text style={s.metaLabel}>Edad</Text>
+              <Text style={s.metaValue}>{edad} años</Text>
+            </View>
+          ) : null}
           <View>
             <Text style={s.metaLabel}>Respondió</Text>
             <Text style={s.metaValue}>{nombre}</Text>

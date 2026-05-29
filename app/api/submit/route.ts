@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
         estudiante: payload.negocio || "—",
         fecha,
         result,
+        edad: payload.edad,
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       pdfBuffer = await renderToBuffer(element as any);
