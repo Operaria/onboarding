@@ -18,15 +18,15 @@ const COPY: Record<Publico, Copy> = {
     tituloLead: "Cómo tu hijo o hija",
     tituloEm: "siente el mundo.",
     bajada:
-      "Antes de responder la encuesta, te contamos en simple de qué se trata. No necesitas saber nada de terapia: tú eres quien mejor conoce a tu hijo o hija.",
+      "Antes de empezar, te contamos en simple de qué se trata — sin tecnicismos. No necesitas saber nada de terapia: nadie conoce a tu hijo o hija como tú, y por eso tu mirada es la más valiosa aquí.",
     porque:
-      "Tú lo ves todos los días: cómo reacciona a los ruidos, a la ropa, a la comida, al movimiento. Esa mirada del día a día es justo lo que el o la terapeuta necesita y no puede ver en una sola sesión.",
+      "Tú lo ves cada día: cómo reacciona a los ruidos, a la ropa, a la comida, al movimiento. Esa mirada del día a día es justo lo que el o la terapeuta necesita y no alcanza a ver en una sola sesión.",
     paraQue:
-      "Con tus respuestas, el o la terapeuta ocupacional entiende cómo tu hijo o hija vive el mundo y arma un apoyo a su medida: qué actividades ayudan, qué ajustar en casa, en qué poner atención. No es una nota ni un diagnóstico por sí solo.",
+      "Con lo que nos cuentes, el o la terapeuta entiende cómo tu hijo o hija vive el mundo y le arma un apoyo a su medida: qué actividades ayudan, qué ajustar en casa, en qué poner atención. No es una nota ni una etiqueta — es una manera de acompañarlo mejor.",
     comoIntro:
-      "Responde pensando en cómo es normalmente, no en un día puntual. No hay respuestas buenas ni malas.",
+      "Responde pensando en cómo es normalmente, no en un día puntual. Aquí no hay respuestas buenas ni malas, y nadie te está evaluando a ti: solo queremos conocer mejor a tu hijo o hija.",
     cierre:
-      "Gracias por tomarte estos minutos. Lo que sabes de tu hijo o hija vale, y aquí ayuda de verdad.",
+      "Gracias por estos minutos. Lo que sabes de tu hijo o hija vale muchísimo, y aquí ayuda de verdad a cuidarlo mejor.",
     sujeto: "tu hijo o hija",
   },
   profes: {
@@ -89,8 +89,9 @@ export default function InfoSensorial({ publico }: { publico: Publico }) {
           </p>
           <p className="text-[17px] sm:text-[18px] text-body leading-relaxed mb-4">
             En algunos niños y niñas ese proceso funciona distinto: hay sonidos que les molestan mucho, texturas
-            que no soportan, o necesitan moverse todo el rato. No es un capricho ni mala conducta: es la forma en
-            que su cuerpo recibe y ordena la información. Entenderlo es el primer paso para ayudar.
+            que no soportan, o necesitan moverse todo el rato. No es un capricho, ni mala conducta, ni culpa de
+            nadie: es la forma en que su cuerpo recibe y ordena lo que pasa alrededor. Entenderlo es el primer
+            paso para acompañarlo mejor.
           </p>
         </Seccion>
 
