@@ -35,8 +35,9 @@ function htmlBody(p: SubmitPayload, nombreEncuesta: string): string {
   const entradaEnum = (r.entrada_deseada as string | undefined) ?? "";
   const entradaLabel = entradaEnum ? (entradaLabels[entradaEnum] ?? entradaEnum) : "—";
   const requiereCreacionGoogle = r.tecnico_google_account === OPT_NO_TENGO_GOOGLE;
-  const resumen = p.vertical === "barber"
-    ? `
+  let resumen: string;
+  if (p.vertical === "barber") {
+    resumen = `
       <p><strong style="color:#0F1E3A;">Contacto:</strong><br>${fmt(r.id_nombre)} — ${fmt(r.id_telefono)}</p>
       <p><strong style="color:#0F1E3A;">Entrada elegida:</strong> ${entradaLabel}</p>
       <p><strong style="color:#0F1E3A;">Dolor principal:</strong><br>${fmt(r.contexto_principal_dolor)}</p>
@@ -52,13 +53,31 @@ function htmlBody(p: SubmitPayload, nombreEncuesta: string): string {
         <li>Instagram Business: ${fmt(r.tiene_instagram_business)}</li>
         <li>Email contador: ${fmt(r.email_contador) || "—"}</li>
         <li>Hora cierre nocturno: ${fmt(r.hora_cierre_nocturno)}</li>
-      </ul>`
-    : `
+      </ul>`;
+  } else if (p.vertical === "cindy") {
+    resumen = `
+      <p><strong style="color:#0F1E3A;">Para:</strong> ${p.nombreFormateado}</p>
+      <p><strong style="color:#0F1E3A;">Rol:</strong><br>${fmt(r.rol)}</p>
+      <p><strong style="color:#0F1E3A;">Le encantaría soltar:</strong><br>${fmt(r.soltar_tareas)}</p>
+      <p><strong style="color:#0F1E3A;">Primeras 3 tareas:</strong><br>${fmt(r.soltar_detalle)}</p>
+      <p><strong style="color:#0F1E3A;">Estilo / trato:</strong> ${fmt(r.trato)}</p>
+      <p><strong style="color:#0F1E3A;">Nunca debe:</strong><br>${fmt(r.nunca)}</p>
+      <hr style="border:none;border-top:1px solid #D6D2CB;margin:14px 0;">
+      <p style="color:#1B4D4A;font-size:13px;"><strong>🧭 Qué ir a buscar:</strong></p>
+      <ul style="color:#3D4450;font-size:13px;line-height:1.6;">
+        <li><strong>Accesos / integraciones:</strong> ${fmt(r.herramientas)}</li>
+        <li><strong>Canal preferido:</strong> ${fmt(r.canal_preferido)}</li>
+        <li><strong>Correo a conectar:</strong> ${fmt(r.email)}</li>
+        <li><strong>Materiales a recolectar:</strong> ${fmt(r.materiales)}</li>
+      </ul>`;
+  } else {
+    resumen = `
       <p><strong style="color:#0F1E3A;">Nombre / cargo:</strong><br>${fmt(r.p1)}</p>
       <p><strong style="color:#0F1E3A;">Rubro:</strong><br>${fmt(r.p2)}</p>
       <p><strong style="color:#0F1E3A;">Dolor principal:</strong><br>${fmt(r.p6)}</p>
       <p><strong style="color:#0F1E3A;">Nivel de impacto (1-10):</strong> ${fmt(r.p20)}</p>
       <p><strong style="color:#0F1E3A;">Mejor forma de contacto:</strong><br>${fmt(r.p21)}</p>`;
+  }
 
   return `
   <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; background: #F2F0EB; color: #3D4450;">
@@ -124,6 +143,8 @@ export async function POST(req: NextRequest) {
       subject =
         vertical.id === "web"
           ? `web-${payload.cliente}-${payload.negocio ?? "sin-negocio"}`
+          : vertical.id === "cindy"
+          ? `Onboarding Cindy — ${payload.nombreFormateado}`
           : `Onboarding ${vertical.id} — ${payload.nombreFormateado}`;
       html = htmlBody(payload, vertical.nombreEncuesta);
     }

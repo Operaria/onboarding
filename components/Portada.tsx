@@ -11,6 +11,9 @@ interface Props {
   subtitulo?: string;
   tema?: "flow" | "paraguas" | "health";
   infoHref?: string;
+  clienteLabel?: string;
+  negocioLabel?: string;
+  mostrarNegocio?: boolean;
 }
 
 export default function Portada({
@@ -24,6 +27,9 @@ export default function Portada({
   subtitulo = "Con esta información, armamos tu operación.",
   tema = "flow",
   infoHref,
+  clienteLabel = "Cliente",
+  negocioLabel = "Negocio",
+  mostrarNegocio = true,
 }: Props) {
   const isParaguas = tema === "paraguas";
   const isHealth = tema === "health";
@@ -152,8 +158,8 @@ export default function Portada({
         ) : null}
 
         <div className="border-t border-petrol mt-12 pt-6 w-full flex flex-wrap justify-center gap-x-12 gap-y-4">
-          <MetaPair label="Cliente" value={nombre} />
-          <MetaPair label="Negocio" value={negocio} />
+          <MetaPair label={clienteLabel} value={nombre} />
+          {mostrarNegocio && <MetaPair label={negocioLabel} value={negocio} />}
           <MetaPair label="Fecha" value={fecha} />
         </div>
 

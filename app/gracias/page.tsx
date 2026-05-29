@@ -30,6 +30,25 @@ export default async function Gracias({
     );
   }
 
+  if (v === "cindy") {
+    return (
+      <main className="min-h-screen bg-navy flex flex-col items-center justify-center px-6 py-16 text-center">
+        <p className="font-mono text-teal text-[11px] uppercase tracking-[3px] mb-7">
+          Operaria · Familia
+        </p>
+        <h1 className="font-display italic text-offwhite text-[40px] sm:text-[56px] leading-tight">
+          Gracias.
+        </h1>
+        <p className="text-teal text-[17px] mt-6 max-w-xl leading-relaxed">
+          Con esto armamos a Cindy a tu medida. Bienvenida — qué lindo tenerte.
+        </p>
+        <p className="font-mono text-muted text-[12px] mt-16 uppercase tracking-[3px]">
+          Hecho con cariño por la Familia Operaria
+        </p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-navy flex flex-col items-center justify-center px-6 py-16 text-center">
       <h1 className="font-sans font-bold text-offwhite text-[36px] sm:text-[48px] leading-tight">

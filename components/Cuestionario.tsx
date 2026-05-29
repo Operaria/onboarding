@@ -197,6 +197,9 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
         subtitulo={vertical.subtitulo}
         tema={vertical.tema}
         infoHref={infoHref}
+        clienteLabel={vertical.metaClienteLabel}
+        negocioLabel={vertical.metaNegocioLabel}
+        mostrarNegocio={!vertical.ocultarNegocio}
       />
 
       <div ref={contenidoRef} id="contenido" className="bg-offwhite">

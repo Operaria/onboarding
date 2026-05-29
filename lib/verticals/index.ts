@@ -5,6 +5,7 @@ import { webBloques, webValidarAlEnviar } from "./web";
 import { spm2HomeBloques, spm2HomeValidarAlEnviar } from "./spm2-hogar";
 import { spm2EscolarBloques, spm2EscolarValidarAlEnviar } from "./spm2-escolar";
 import { fimBloques, fimValidarAlEnviar } from "./fim";
+import { cindyBloques, cindyValidarAlEnviar } from "./cindy";
 
 export interface Vertical {
   id: string;
@@ -24,6 +25,12 @@ export interface Vertical {
   tema?: "flow" | "paraguas" | "health";
   /** Activa el botón de audio (lectura en voz alta) en cada pregunta. */
   audio?: boolean;
+  /** Etiqueta de la meta-portada para el nombre. Default "Cliente". */
+  metaClienteLabel?: string;
+  /** Etiqueta de la meta-portada para el negocio. Default "Negocio". */
+  metaNegocioLabel?: string;
+  /** Oculta el campo de negocio en la portada (encuestas no comerciales). */
+  ocultarNegocio?: boolean;
 }
 
 export const verticals: Record<string, Vertical> = {
@@ -84,6 +91,19 @@ export const verticals: Record<string, Vertical> = {
     subtitulo: "La aplica el o la terapeuta observando a la persona. Cada ítem se puntúa de 1 (más apoyo) a 7 (más autonomía).",
     cierre: "Evaluación completada. Se calculan el total y los subtotales motor y cognitivo.",
     tema: "health",
+  },
+  cindy: {
+    id: "cindy",
+    nombreEncuesta: "Hagamos a Cindy a tu medida",
+    bloques: cindyBloques,
+    validarAlEnviar: cindyValidarAlEnviar,
+    marca: "Familia",
+    tagline: "Bienvenida",
+    subtitulo: "Cuéntanos cómo trabajas y armamos tu asistente, hecha para ti.",
+    cierre: "Gracias. Con esto armamos a Cindy a tu medida.",
+    tema: "paraguas",
+    metaClienteLabel: "Para",
+    ocultarNegocio: true,
   },
 };
 
