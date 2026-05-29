@@ -301,10 +301,9 @@ export function PDFSpm2Report({ nombre, estudiante, fecha, result, edad }: Props
         {/* ── Disclaimer ── */}
         <View style={s.disclaimer} wrap={false}>
           <Text style={s.disclaimerText}>
-            NOTA: Las tablas T-score utilizadas son aproximadas y deben ser verificadas
-            contra el manual oficial SPM-2 antes de emitir un diagnóstico clínico definitivo.
-            Este reporte es una herramienta de apoyo para el/la terapeuta ocupacional y no
-            reemplaza el juicio clínico profesional.
+            NOTA: Los puntajes T se basan en el baremo oficial del SPM-2 (Niño/a 5–12 años).
+            Este reporte es una herramienta de apoyo para el/la terapeuta ocupacional: no
+            reemplaza el juicio clínico profesional ni constituye un diagnóstico por sí solo.
           </Text>
         </View>
 
