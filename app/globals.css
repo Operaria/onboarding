@@ -84,3 +84,22 @@ html, body {
 
 input[type="range"] { accent-color: #4A9B93; }
 input[type="checkbox"], input[type="radio"] { accent-color: #4A9B93; }
+
+/* Operaria — Rebeldía "Cuídate · slamm"
+   Producto de reducción de daños, audiencia chicos gais escena chemsex.
+   Paleta nocturna editorial: violeta + magenta cálido + dorado quemado + petrol-light bisagra.
+   Pendiente confirmación de Do. */
+.theme-cuidate {
+  --cuidate-noche: #1A0E2E;
+  --cuidate-noche-deep: #0D0719;
+  --cuidate-noche-up: #2D1A4A;
+  --cuidate-magenta: #FF5C8A;
+  --cuidate-magenta-deep: #C92B7A;
+  --cuidate-petrol-light: #4A9B93;
+  --cuidate-dorado: #E8B872;
+  --cuidate-offwhite: #F2E8E0;
+  --cuidate-rojo-emer: #C0392B;
+}
+.theme-cuidate input[type="range"] { accent-color: #FF5C8A; }
+.theme-cuidate input[type="checkbox"],
+.theme-cuidate input[type="radio"] { accent-color: #FF5C8A; }

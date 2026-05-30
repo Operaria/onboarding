@@ -20,6 +20,18 @@ export function middleware(req: NextRequest) {
     }
   }
 
+  if (host.startsWith("cuidate.")) {
+    // Subdominio dedicado del producto Cuídate · slamm (reducción de daños).
+    // Cualquier ruta del subdominio se reescribe dentro de /cuidate.
+    if (
+      !url.pathname.startsWith("/cuidate") &&
+      !url.pathname.startsWith("/api/")
+    ) {
+      url.pathname = `/cuidate${url.pathname === "/" ? "" : url.pathname}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
   if (host.startsWith("agente.")) {
     if (url.pathname === "/" || url.pathname === "") {
       return NextResponse.redirect("https://operaria.cl");
