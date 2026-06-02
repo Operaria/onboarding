@@ -12,9 +12,11 @@ interface Props {
   tema?: "flow" | "paraguas" | "health";
   audio?: boolean;
   eyebrowLabel?: string;
+  /** Marco temporal del instrumento. Solo se muestra prominente en el primer bloque. */
+  periodo?: string;
 }
 
-export default function Bloque({ bloque, respuestas, onChange, innerRef, tema, audio, eyebrowLabel = "Área" }: Props) {
+export default function Bloque({ bloque, respuestas, onChange, innerRef, tema, audio, eyebrowLabel = "Área", periodo }: Props) {
   const isHealth = tema === "health";
 
   if (isHealth) {
@@ -28,6 +30,16 @@ export default function Bloque({ bloque, respuestas, onChange, innerRef, tema, a
         <h1 className="font-sans font-semibold text-[30px] sm:text-[34px] text-petrol leading-tight border-b-2 border-teal pb-3">
           {bloque.titulo}
         </h1>
+        {bloque.id === 0 && periodo && (
+          <div className="mt-7 inline-flex flex-col items-start gap-1 border-2 border-teal/30 bg-teal/[0.07] rounded-2xl px-5 py-4 max-w-full">
+            <span className="font-mono text-teal text-[10px] uppercase tracking-[2.5px]">
+              Marque pensando en
+            </span>
+            <span className="font-display italic text-petrol text-[clamp(28px,4.5vw,42px)] leading-[1.05]">
+              {periodo}
+            </span>
+          </div>
+        )}
         {bloque.intro && (
           <p className="font-display italic font-normal text-[22px] sm:text-[24px] leading-snug text-navy/70 mt-7 max-w-2xl">
             {bloque.intro}

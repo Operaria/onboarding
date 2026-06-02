@@ -3,11 +3,23 @@ import { Resend } from "resend";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { PDFDiagnostico } from "@/components/PDFDiagnostico";
 import { PDFSpm2Report } from "@/components/PDFSpm2Report";
+import { PDFMdqReport } from "@/components/PDFMdqReport";
+import { PDFPhq9Report } from "@/components/PDFPhq9Report";
+import { PDFGad7Report } from "@/components/PDFGad7Report";
+import { PDFDass21Report } from "@/components/PDFDass21Report";
 import { formatDate } from "@/lib/utils";
 import { getVertical } from "@/lib/verticals";
 import { entradaLabels, OPT_NO_TENGO_GOOGLE } from "@/lib/verticals/barber";
 import { calculateSpm2Scores, classificationLabelEs } from "@/lib/spm2";
 import type { FormType } from "@/lib/spm2";
+import { calculateMdqScore, clasificacionLabelEs as mdqClasifLabelEs } from "@/lib/mdq";
+import type { MdqResult } from "@/lib/mdq";
+import { calculatePhq9Score, phq9BandaLabel } from "@/lib/phq9";
+import type { Phq9Result } from "@/lib/phq9";
+import { calculateGad7Score, gad7BandaLabel } from "@/lib/gad7";
+import type { Gad7Result } from "@/lib/gad7";
+import { calculateDass21Score, dass21BandaLabel, dass21SubescalaLabel } from "@/lib/dass21";
+import type { Dass21Result } from "@/lib/dass21";
 import type { SubmitPayload, RespuestaValor } from "@/lib/types";
 import React from "react";
 
@@ -104,12 +116,79 @@ export async function POST(req: NextRequest) {
     const vertical = getVertical(payload.vertical ?? "generico");
     const fecha = formatDate(new Date(payload.timestamp || Date.now()));
     const isSpm2 = vertical.id === "spm2-hogar" || vertical.id === "spm2-escolar";
+    const isMdq = vertical.id === "mdq";
+    const isPhq9 = vertical.id === "phq9";
+    const isGad7 = vertical.id === "gad7";
+    const isDass21 = vertical.id === "dass21";
+    const isHandsSm = isMdq || isPhq9 || isGad7 || isDass21;
 
     let pdfBuffer: Buffer;
     let subject: string;
     let html: string;
+    let mdqResultForEmail: MdqResult | null = null;
+    let phq9ResultForEmail: Phq9Result | null = null;
 
-    if (isSpm2) {
+    if (isPhq9) {
+      // ── PHQ-9: scoring 0–27 + alerta ítem 9 ──
+      const result = calculatePhq9Score(payload.respuestas);
+      phq9ResultForEmail = result;
+      const element = React.createElement(PDFPhq9Report, {
+        pacienteName: payload.nombreFormateado,
+        edad: payload.edad,
+        fecha,
+        tratanteName: payload.tratanteName,
+        result,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+      const alertaTag = result.ideacionSuicida ? " · ALERTA ítem 9" : "";
+      subject = `PHQ-9 ${result.totalScore}/27 (${phq9BandaLabel(result.banda)}) — ${payload.nombreFormateado}${alertaTag}`;
+      html = phq9HtmlBody(payload, result);
+    } else if (isGad7) {
+      const result = calculateGad7Score(payload.respuestas);
+      const element = React.createElement(PDFGad7Report, {
+        pacienteName: payload.nombreFormateado,
+        edad: payload.edad,
+        fecha,
+        tratanteName: payload.tratanteName,
+        result,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+      subject = `GAD-7 ${result.totalScore}/21 (${gad7BandaLabel(result.banda)}) — ${payload.nombreFormateado}`;
+      html = gad7HtmlBody(payload, result);
+    } else if (isDass21) {
+      const result = calculateDass21Score(payload.respuestas);
+      const element = React.createElement(PDFDass21Report, {
+        pacienteName: payload.nombreFormateado,
+        edad: payload.edad,
+        fecha,
+        tratanteName: payload.tratanteName,
+        result,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+      subject = `DASS-21 D:${result.depresion.score} A:${result.ansiedad.score} S:${result.estres.score} — ${payload.nombreFormateado}`;
+      html = dass21HtmlBody(payload, result);
+    } else if (isMdq) {
+      // ── MDQ: tamizaje binario + informe SOCHITAB ──
+      const result = calculateMdqScore(payload.respuestas);
+      mdqResultForEmail = result;
+
+      const element = React.createElement(PDFMdqReport, {
+        pacienteName: payload.nombreFormateado,
+        edad: payload.edad,
+        fecha,
+        tratanteName: payload.tratanteName,
+        result,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+
+      const tag = result.clasificacion === "positivo" ? "POSITIVO" : "NEGATIVO";
+      subject = `MDQ ${tag} — ${payload.nombreFormateado}`;
+      html = mdqHtmlBody(payload, result);
+    } else if (isSpm2) {
       // ── SPM-2: scoring + reporte clínico ──
       const formType: FormType = vertical.id === "spm2-hogar" ? "hogar" : "escolar";
       const prefix = formType === "hogar" ? "h" : "e";
@@ -150,39 +229,102 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = process.env.RESEND_API_KEY;
-    // SPM-2: el informe va al correo del TO ingresado en el lanzador (fallback al correo fijo).
     const isValidEmail = (e?: string) => !!e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-    const to = isSpm2 && isValidEmail(payload.toEmail) ? payload.toEmail! : process.env.DESTINATION_EMAIL;
     const from = process.env.FROM_EMAIL || "onboarding@resend.dev";
-    if (!apiKey || !to) {
-      return NextResponse.json({ success: false, error: "Faltan variables de entorno" }, { status: 500 });
+    const fallback = process.env.DESTINATION_EMAIL;
+
+    // ── Destinatarios ──
+    // Hands-SM (MDQ/PHQ-9/GAD-7/DASS-21): paciente y/o tratante según informeDest ("p","t","pt").
+    // SPM-2 (Hands-TO): el correo del TO.
+    // Resto: DESTINATION_EMAIL.
+    let recipients: string[] = [];
+    if (isHandsSm) {
+      const dest = (payload.informeDest ?? "").toLowerCase();
+      if (dest.includes("p") && isValidEmail(payload.pacienteEmail)) recipients.push(payload.pacienteEmail!);
+      if (dest.includes("t") && isValidEmail(payload.tratanteEmail)) recipients.push(payload.tratanteEmail!);
+      if (recipients.length === 0 && fallback) recipients.push(fallback);
+    } else if (isSpm2) {
+      recipients = [isValidEmail(payload.toEmail) ? payload.toEmail! : (fallback ?? "")];
+    } else {
+      recipients = [fallback ?? ""];
+    }
+    recipients = recipients.filter(Boolean);
+
+    if (!apiKey || recipients.length === 0) {
+      return NextResponse.json({ success: false, error: "Faltan variables de entorno o destinatarios" }, { status: 500 });
     }
 
     const resend = new Resend(apiKey);
-    const filename = isSpm2
+    const filename = isMdq
+      ? `MDQ-${(mdqResultForEmail?.clasificacion ?? "tamizaje").toUpperCase()}-${payload.cliente}.pdf`
+      : isPhq9
+      ? `PHQ9-${payload.cliente}.pdf`
+      : isGad7
+      ? `GAD7-${payload.cliente}.pdf`
+      : isDass21
+      ? `DASS21-${payload.cliente}.pdf`
+      : isSpm2
       ? `SPM2-${vertical.id === "spm2-hogar" ? "Hogar" : "Escolar"}-${payload.negocio || payload.cliente}.pdf`
       : `Levantamiento-${payload.negocio || payload.cliente}.pdf`;
-    const { error } = await resend.emails.send({
-      from,
-      to,
-      subject,
-      html,
-      attachments: [
-        {
-          filename,
-          content: pdfBuffer,
-        },
-      ],
-    });
 
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message ?? "Error Resend" }, { status: 500 });
+    // Envío secuencial por destinatario (Resend permite "to: string[]" pero los pone
+    // a todos en CC; aquí queremos envíos independientes — clínico y paciente no
+    // tienen por qué ver el correo del otro).
+    for (const to of recipients) {
+      const { error } = await resend.emails.send({
+        from,
+        to,
+        subject,
+        html,
+        attachments: [{ filename, content: pdfBuffer }],
+      });
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message ?? "Error Resend" }, { status: 500 });
+      }
     }
+
     return NextResponse.json({ success: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error desconocido";
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
+}
+
+// ─── Email HTML para resultados MDQ ─────────────────────────────────────────
+
+function mdqHtmlBody(p: SubmitPayload, result: MdqResult): string {
+  const positivo = result.clasificacion === "positivo";
+  const color = positivo ? "#C0392B" : "#27AE60";
+  const label = mdqClasifLabelEs(result.clasificacion);
+  const tratanteLine = p.tratanteName
+    ? `<p style="margin:6px 0 0;color:rgba(242,240,235,.7);font-size:13px;">Tratante: ${p.tratanteName}</p>`
+    : "";
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F2F0EB;color:#3D4450;">
+    <div style="background:#1B4D4A;color:#fff;padding:24px;border-radius:8px 8px 0 0;">
+      <div style="color:#4A9B93;font-size:11px;letter-spacing:3px;text-transform:uppercase;">MDQ · Cuestionario del Ánimo</div>
+      <h1 style="margin:8px 0 0;font-size:20px;">Resultado de tamizaje</h1>
+      <p style="margin:6px 0 0;color:#4A9B93;font-size:14px;">Paciente: ${p.nombreFormateado}</p>
+      ${tratanteLine}
+    </div>
+    <div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;">
+      <div style="background:${color};color:#fff;padding:16px 18px;border-radius:6px;margin-bottom:16px;">
+        <div style="font-size:18px;font-weight:700;letter-spacing:.4px;">${label.toUpperCase()}</div>
+        <div style="font-size:12px;margin-top:4px;opacity:.9;">
+          ${positivo
+            ? "Cumple los tres criterios del MDQ. Se sugiere evaluación por psiquiatra."
+            : "No cumple los tres criterios del MDQ en este momento."}
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;">≥ 7 síntomas en «Sí»</td><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;text-align:right;font-weight:600;color:${result.cumpleSintomas ? "#27AE60" : "#9E9C96"};">${result.sintomasSi} / ${result.totalItems}</td></tr>
+        <tr><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;">Co-ocurrencia en un mismo período</td><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;text-align:right;font-weight:600;color:${result.cumpleCoocurrencia ? "#27AE60" : "#9E9C96"};">${result.coocurrencia ?? "—"}</td></tr>
+        <tr><td style="padding:6px 0;">Nivel de problema (≥ moderado)</td><td style="padding:6px 0;text-align:right;font-weight:600;color:${result.cumpleProblema ? "#27AE60" : "#9E9C96"};">${result.nivelProblema ?? "—"}</td></tr>
+      </table>
+      <hr style="border:none;border-top:1px solid #D6D2CB;margin:16px 0;">
+      <p style="color:#9E9C96;font-size:12px;">El detalle completo (respuestas ítem por ítem + disclaimer SOCHITAB) está en el PDF adjunto.</p>
+    </div>
+  </div>`;
 }
 
 // ─── Email HTML para resultados SPM-2 ───────────────────────────────────────
@@ -236,6 +378,130 @@ function spm2HtmlBody(p: SubmitPayload, result: Spm2Result, formLabel: string): 
       </table>
       <hr style="border: none; border-top: 1px solid #D6D2CB; margin: 16px 0;">
       <p style="color: #9E9C96; font-size: 12px;">Reporte PDF completo adjunto con interpretación clínica por área.</p>
+    </div>
+  </div>`;
+}
+
+// ─── PHQ-9 ──────────────────────────────────────────────────────────────────
+
+function bandaColorPhq9(b: Phq9Result["banda"]): string {
+  if (b === "minima") return "#27AE60";
+  if (b === "leve") return "#E8A838";
+  if (b === "moderada") return "#D97706";
+  if (b === "moderadamente_severa") return "#C0392B";
+  return "#9B1C0F";
+}
+
+function phq9HtmlBody(p: SubmitPayload, result: Phq9Result): string {
+  const color = bandaColorPhq9(result.banda);
+  const tratanteLine = p.tratanteName
+    ? `<p style="margin:6px 0 0;color:rgba(242,240,235,.7);font-size:13px;">Tratante: ${p.tratanteName}</p>`
+    : "";
+  const alertaBlock = result.ideacionSuicida
+    ? `<div style="background:#9B1C0F;color:#fff;padding:14px 16px;border-radius:6px;margin-bottom:14px;border-left:4px solid #fff;">
+         <div style="font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">ALERTA — Ítem 9 positivo</div>
+         <div style="font-size:13px;margin-top:6px;line-height:1.55;">
+           El paciente respondió «${result.ideacionSuicidaRespuesta}» a la pregunta sobre ideación de autoagresión.
+           Se mostraron en pantalla los recursos de emergencia (Salud Responde 600 360 7777, *4141).
+           Se sugiere contacto clínico oportuno.
+         </div>
+       </div>`
+    : "";
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F2F0EB;color:#3D4450;">
+    <div style="background:#1B4D4A;color:#fff;padding:24px;border-radius:8px 8px 0 0;">
+      <div style="color:#4A9B93;font-size:11px;letter-spacing:3px;text-transform:uppercase;">PHQ-9 · Depresión</div>
+      <h1 style="margin:8px 0 0;font-size:20px;">Resultado de tamizaje</h1>
+      <p style="margin:6px 0 0;color:#4A9B93;font-size:14px;">Paciente: ${p.nombreFormateado}</p>
+      ${tratanteLine}
+    </div>
+    <div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;">
+      ${alertaBlock}
+      <div style="background:${color};color:#fff;padding:16px 18px;border-radius:6px;margin-bottom:16px;">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85;">Puntaje · severidad</div>
+        <div style="font-size:30px;font-weight:700;font-family:monospace;margin-top:4px;">${result.totalScore} / 27</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px;">${phq9BandaLabel(result.banda)}</div>
+      </div>
+      ${result.funcionalidad ? `<p style="color:#3D4450;font-size:13px;">Impacto funcional (ítem 10): <strong>${result.funcionalidad}</strong></p>` : ""}
+      <hr style="border:none;border-top:1px solid #D6D2CB;margin:16px 0;">
+      <p style="color:#9E9C96;font-size:12px;">El PDF adjunto contiene el desglose ítem por ítem, la interpretación clínica y el disclaimer.</p>
+    </div>
+  </div>`;
+}
+
+// ─── GAD-7 ──────────────────────────────────────────────────────────────────
+
+function bandaColorGad7(b: Gad7Result["banda"]): string {
+  if (b === "minima") return "#27AE60";
+  if (b === "leve") return "#E8A838";
+  if (b === "moderada") return "#D97706";
+  return "#C0392B";
+}
+
+function gad7HtmlBody(p: SubmitPayload, result: Gad7Result): string {
+  const color = bandaColorGad7(result.banda);
+  const tratanteLine = p.tratanteName
+    ? `<p style="margin:6px 0 0;color:rgba(242,240,235,.7);font-size:13px;">Tratante: ${p.tratanteName}</p>`
+    : "";
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F2F0EB;color:#3D4450;">
+    <div style="background:#1B4D4A;color:#fff;padding:24px;border-radius:8px 8px 0 0;">
+      <div style="color:#4A9B93;font-size:11px;letter-spacing:3px;text-transform:uppercase;">GAD-7 · Ansiedad</div>
+      <h1 style="margin:8px 0 0;font-size:20px;">Resultado de tamizaje</h1>
+      <p style="margin:6px 0 0;color:#4A9B93;font-size:14px;">Paciente: ${p.nombreFormateado}</p>
+      ${tratanteLine}
+    </div>
+    <div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;">
+      <div style="background:${color};color:#fff;padding:16px 18px;border-radius:6px;margin-bottom:16px;">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85;">Puntaje · severidad</div>
+        <div style="font-size:30px;font-weight:700;font-family:monospace;margin-top:4px;">${result.totalScore} / 21</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px;">${gad7BandaLabel(result.banda)}</div>
+      </div>
+      ${result.funcionalidad ? `<p style="color:#3D4450;font-size:13px;">Impacto funcional (ítem 8): <strong>${result.funcionalidad}</strong></p>` : ""}
+      <hr style="border:none;border-top:1px solid #D6D2CB;margin:16px 0;">
+      <p style="color:#9E9C96;font-size:12px;">El PDF adjunto contiene el desglose ítem por ítem, la interpretación clínica y el disclaimer.</p>
+    </div>
+  </div>`;
+}
+
+// ─── DASS-21 ────────────────────────────────────────────────────────────────
+
+function bandaColorDass21(b: Dass21Result["depresion"]["banda"]): string {
+  if (b === "normal") return "#27AE60";
+  if (b === "leve") return "#E8A838";
+  if (b === "moderada") return "#D97706";
+  if (b === "severa") return "#C0392B";
+  return "#9B1C0F";
+}
+
+function dass21HtmlBody(p: SubmitPayload, result: Dass21Result): string {
+  const tratanteLine = p.tratanteName
+    ? `<p style="margin:6px 0 0;color:rgba(242,240,235,.7);font-size:13px;">Tratante: ${p.tratanteName}</p>`
+    : "";
+  const card = (sub: Dass21Result["depresion"]) => {
+    const color = bandaColorDass21(sub.banda);
+    return `<div style="background:${color};color:#fff;padding:14px;border-radius:6px;flex:1;">
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85;">${dass21SubescalaLabel(sub.subescala)}</div>
+      <div style="font-size:26px;font-weight:700;font-family:monospace;margin-top:4px;">${sub.score}</div>
+      <div style="font-size:11px;font-weight:700;margin-top:2px;">${dass21BandaLabel(sub.banda)}</div>
+    </div>`;
+  };
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#F2F0EB;color:#3D4450;">
+    <div style="background:#1B4D4A;color:#fff;padding:24px;border-radius:8px 8px 0 0;">
+      <div style="color:#4A9B93;font-size:11px;letter-spacing:3px;text-transform:uppercase;">DASS-21 · Depresión, Ansiedad, Estrés</div>
+      <h1 style="margin:8px 0 0;font-size:20px;">Resultado de tamizaje</h1>
+      <p style="margin:6px 0 0;color:#4A9B93;font-size:14px;">Paciente: ${p.nombreFormateado}</p>
+      ${tratanteLine}
+    </div>
+    <div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;">
+      <table style="width:100%;border-collapse:separate;border-spacing:6px;margin-bottom:14px;"><tr>
+        <td>${card(result.depresion)}</td>
+        <td>${card(result.ansiedad)}</td>
+        <td>${card(result.estres)}</td>
+      </tr></table>
+      <hr style="border:none;border-top:1px solid #D6D2CB;margin:16px 0;">
+      <p style="color:#9E9C96;font-size:12px;">El PDF adjunto contiene la interpretación clínica por subescala y el disclaimer.</p>
     </div>
   </div>`;
 }

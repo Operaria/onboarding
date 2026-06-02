@@ -95,4 +95,14 @@ export interface SubmitPayload {
   toEmail?: string;
   /** Edad del niño/a en años (SPM-2 Niño/a: normado 5–12). */
   edad?: string;
+  // ── Hands-SM (salud mental autoevaluativa) ──
+  /** Correo del paciente que se autoevalúa. */
+  pacienteEmail?: string;
+  /** Nombre del psiquiatra/psicólogo/médico tratante (opcional). */
+  tratanteName?: string;
+  /** Correo del tratante (opcional). */
+  tratanteEmail?: string;
+  /** Destinatarios del informe PDF. "p" = paciente, "t" = tratante.
+   *  Ej: "pt" = ambos, "t" = solo tratante. Si vacío o inválido, fallback al DESTINATION_EMAIL. */
+  informeDest?: string;
 }

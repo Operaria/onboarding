@@ -11,8 +11,22 @@ import Bloque from "./Bloque";
 import SaveBar from "./SaveBar";
 import FimResultado from "./FimResultado";
 import { scoreFim, type FimResult } from "@/lib/fim";
+import { detectarAlertaSuicidio, type AlertaSuicidio } from "@/lib/alerta-suicidio";
+import AlertaSuicidioModal from "./AlertaSuicidio";
 
-interface Props { cliente: string; negocio: string; verticalId: string; toName?: string; toEmail?: string; edad?: string }
+interface Props {
+  cliente: string;
+  negocio: string;
+  verticalId: string;
+  toName?: string;
+  toEmail?: string;
+  edad?: string;
+  // Hands-SM
+  pacienteEmail?: string;
+  tratanteName?: string;
+  tratanteEmail?: string;
+  informeDest?: string;
+}
 
 type Status = { tone: "muted" | "teal" | "warm"; text: string };
 
@@ -21,7 +35,18 @@ const DEFAULT_STATUS: Status = {
   text: "Completa a tu ritmo. Cuando termines, haz clic en Enviar.",
 };
 
-export default function Cuestionario({ cliente, negocio, verticalId, toName, toEmail, edad }: Props) {
+export default function Cuestionario({
+  cliente,
+  negocio,
+  verticalId,
+  toName,
+  toEmail,
+  edad,
+  pacienteEmail,
+  tratanteName,
+  tratanteEmail,
+  informeDest,
+}: Props) {
   const router = useRouter();
   const vertical = useMemo(() => getVertical(verticalId), [verticalId]);
   const nombre = useMemo(() => slugToName(cliente), [cliente]);
@@ -35,6 +60,8 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
   const [showModal, setShowModal] = useState(false);
   const [warningMensaje, setWarningMensaje] = useState<string | null>(null);
   const [fimResult, setFimResult] = useState<FimResult | null>(null);
+  const [alertaActiva, setAlertaActiva] = useState<AlertaSuicidio | null>(null);
+  const alertaPrevRef = useRef<boolean>(false);
 
   const contenidoRef = useRef<HTMLDivElement>(null);
   const bloqueDolorRef = useRef<HTMLDivElement>(null);
@@ -81,6 +108,18 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
     }, 10000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [storageSlug, respuestas]);
+
+  // Detección de alerta suicida: solo disparamos el modal cuando se ENCIENDE
+  // (transición de no-alerta a alerta). Si el paciente la cierra y luego cambia
+  // a otro valor no-alerta, no volvemos a abrirla. Si vuelve a marcar el ítem,
+  // sí re-aparece.
+  useEffect(() => {
+    const alerta = detectarAlertaSuicidio(respuestas, vertical.id);
+    if (alerta && !alertaPrevRef.current) {
+      setAlertaActiva(alerta);
+    }
+    alertaPrevRef.current = !!alerta;
+  }, [respuestas, vertical.id]);
 
   useEffect(() => {
     if (tickRef.current) clearInterval(tickRef.current);
@@ -143,6 +182,10 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
           toName,
           toEmail,
           edad,
+          pacienteEmail,
+          tratanteName,
+          tratanteEmail,
+          informeDest,
         }),
       });
       if (!res.ok) throw new Error("Error servidor");
@@ -180,7 +223,13 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
     [temaBase, vertical.paleta === "self" ? "theme-self" : ""].filter(Boolean).join(" ") || undefined;
 
   const infoHref =
-    vertical.id === "spm2-hogar" ? "/que-es/papas" : vertical.id === "spm2-escolar" ? "/que-es/profes" : undefined;
+    vertical.id === "spm2-hogar" ? "/que-es/papas"
+    : vertical.id === "spm2-escolar" ? "/que-es/profes"
+    : vertical.id === "mdq" ? "/que-es/mdq"
+    : vertical.id === "phq9" ? "/que-es/phq9"
+    : vertical.id === "gad7" ? "/que-es/gad7"
+    : vertical.id === "dass21" ? "/que-es/dass21"
+    : undefined;
 
   if (fimResult) {
     return <FimResultado result={fimResult} nombre={nombre} negocio={negocio} fecha={fecha} edad={edad} />;
@@ -202,6 +251,7 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
         clienteLabel={vertical.metaClienteLabel}
         negocioLabel={vertical.metaNegocioLabel}
         mostrarNegocio={!vertical.ocultarNegocio}
+        periodo={vertical.periodo}
       />
 
       <div ref={contenidoRef} id="contenido" className="bg-offwhite">
@@ -216,6 +266,7 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
               tema={vertical.tema}
               audio={vertical.audio}
               eyebrowLabel={vertical.bloqueEyebrow}
+              periodo={vertical.periodo}
             />
           ))}
 
@@ -246,6 +297,13 @@ export default function Cuestionario({ cliente, negocio, verticalId, toName, toE
             </div>
           </div>
         </div>
+      )}
+
+      {alertaActiva && (
+        <AlertaSuicidioModal
+          alerta={alertaActiva}
+          onContinuar={() => setAlertaActiva(null)}
+        />
       )}
 
       {showModal && (

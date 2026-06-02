@@ -1,5 +1,7 @@
 "use client";
 
+import OrbitalLogo from "./OrbitalLogo";
+
 interface Props {
   nombre: string;
   negocio: string;
@@ -14,6 +16,9 @@ interface Props {
   clienteLabel?: string;
   negocioLabel?: string;
   mostrarNegocio?: boolean;
+  /** Marco temporal del instrumento. Se muestra en grande para que el paciente sepa
+   *  en qué período pensar al responder (ej: "la última semana"). */
+  periodo?: string;
 }
 
 export default function Portada({
@@ -30,6 +35,7 @@ export default function Portada({
   clienteLabel = "Cliente",
   negocioLabel = "Negocio",
   mostrarNegocio = true,
+  periodo,
 }: Props) {
   const isParaguas = tema === "paraguas";
   const isHealth = tema === "health";
@@ -48,6 +54,12 @@ export default function Portada({
       >
         <div aria-hidden className="pointer-events-none absolute -top-44 -right-28 w-[600px] h-[600px] rounded-full border border-offwhite/[0.08]" />
         <div aria-hidden className="pointer-events-none absolute -bottom-44 right-20 w-[380px] h-[380px] rounded-full border border-teal-light/20" />
+
+        {/* Isotipo Signal · health_comunitaria · dark. Esquina superior derecha. */}
+        <div className="absolute top-6 right-6 sm:top-10 sm:right-10 z-[3] pointer-events-none">
+          <OrbitalLogo combo="health_comunitaria" mode="dark" size={96} />
+        </div>
+
         <div className="relative z-[2] max-w-3xl w-full">
           <div className="font-mono text-teal-light text-[11px] uppercase tracking-[0.2em] mb-9 flex flex-wrap items-center gap-x-3 gap-y-1">
             {marca === "Health" ? (
@@ -89,21 +101,35 @@ export default function Portada({
             </p>
           ) : null}
 
-          {marca === "Health" && (
+          {(periodo || infoHref) && (
+            <div className="mt-9 flex flex-wrap items-end gap-x-7 gap-y-3">
+              {periodo && (
+                <div className="inline-flex flex-col items-start gap-1 border-2 border-teal-light/40 bg-teal-light/[0.08] rounded-2xl pl-5 pr-7 py-4 max-w-full">
+                  <span className="font-mono text-teal-light text-[10px] uppercase tracking-[2.5px]">
+                    Responde pensando en
+                  </span>
+                  <span className="font-display italic text-offwhite text-[clamp(26px,4vw,40px)] leading-[1.05]">
+                    {periodo}
+                  </span>
+                </div>
+              )}
+              {infoHref && (
+                <a
+                  href={infoHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-sans font-semibold text-teal-light text-[15px] underline underline-offset-4 decoration-teal-light/40 hover:text-offwhite transition pb-2"
+                >
+                  ¿Qué es esto y para qué sirve? →
+                </a>
+              )}
+            </div>
+          )}
+
+          {marca === "Health" && !periodo && (
             <p className="font-mono text-offwhite/70 text-[13px] leading-[1.9] tracking-[0.04em] max-w-xl border-l-2 border-teal-light pl-5 mt-9">
               80 preguntas en 8 áreas. Responde con calma, a tu ritmo. Para escuchar una pregunta en voz alta, toca el botón de altavoz que está a su lado.
             </p>
-          )}
-
-          {infoHref && (
-            <a
-              href={infoHref}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block mt-7 font-sans font-semibold text-teal-light text-[15px] underline underline-offset-4 decoration-teal-light/40 hover:text-offwhite transition"
-            >
-              ¿Qué es esto y para qué sirve? →
-            </a>
           )}
 
           <div className="mt-12 flex flex-wrap gap-x-14 gap-y-5">

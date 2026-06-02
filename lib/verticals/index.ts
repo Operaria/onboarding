@@ -6,6 +6,10 @@ import { spm2HomeBloques, spm2HomeValidarAlEnviar } from "./spm2-hogar";
 import { spm2EscolarBloques, spm2EscolarValidarAlEnviar } from "./spm2-escolar";
 import { fimBloques, fimValidarAlEnviar } from "./fim";
 import { cindyBloques, cindyValidarAlEnviar } from "./cindy";
+import { mdqBloques, mdqValidarAlEnviar } from "./mdq";
+import { phq9Bloques, phq9ValidarAlEnviar } from "./phq9";
+import { gad7Bloques, gad7ValidarAlEnviar } from "./gad7";
+import { dass21Bloques, dass21ValidarAlEnviar } from "./dass21";
 
 export interface Vertical {
   id: string;
@@ -35,6 +39,10 @@ export interface Vertical {
   bloqueEyebrow?: string;
   /** Capa de paleta sobre el tema. "self" = tierras y rosas (sobre layout health). */
   paleta?: "self";
+  /** Marco temporal del instrumento (ej: "la última semana", "las últimas 2 semanas",
+   *  "tu vida en general"). Se muestra en la portada en grande para que el paciente
+   *  sepa desde el inicio en qué período pensar al responder. */
+  periodo?: string;
 }
 
 export const verticals: Record<string, Vertical> = {
@@ -110,6 +118,66 @@ export const verticals: Record<string, Vertical> = {
     ocultarNegocio: true,
     bloqueEyebrow: "",
     paleta: "self",
+  },
+  mdq: {
+    id: "mdq",
+    nombreEncuesta: "MDQ · Cuestionario del Ánimo",
+    bloques: mdqBloques,
+    validarAlEnviar: mdqValidarAlEnviar,
+    marca: "Health",
+    tagline: "Mood Disorder Questionnaire · tamizaje de trastorno bipolar",
+    subtitulo: "Cuestionario autoaplicado de 15 preguntas. No es un diagnóstico: es una orientación para decidir si conviene consultar con un especialista.",
+    cierre: "Gracias por completar el cuestionario. El resultado es una orientación clínica; cualquier inquietud debe revisarse con un médico psiquiatra.",
+    tema: "health",
+    metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Sección",
+    periodo: "tu vida en general",
+  },
+  phq9: {
+    id: "phq9",
+    nombreEncuesta: "PHQ-9 · Tamizaje de Depresión",
+    bloques: phq9Bloques,
+    validarAlEnviar: phq9ValidarAlEnviar,
+    marca: "Health",
+    tagline: "Patient Health Questionnaire · 9 ítems",
+    subtitulo: "Cuestionario autoaplicado breve. No es un diagnóstico: orienta sobre la presencia y severidad de síntomas depresivos.",
+    cierre: "Gracias por completar el cuestionario. El resultado es una orientación clínica; cualquier inquietud debe revisarse con un especialista.",
+    tema: "health",
+    metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Sección",
+    periodo: "las últimas 2 semanas",
+  },
+  gad7: {
+    id: "gad7",
+    nombreEncuesta: "GAD-7 · Tamizaje de Ansiedad",
+    bloques: gad7Bloques,
+    validarAlEnviar: gad7ValidarAlEnviar,
+    marca: "Health",
+    tagline: "Generalized Anxiety Disorder · 7 ítems",
+    subtitulo: "Cuestionario autoaplicado breve. No es un diagnóstico: orienta sobre la presencia y severidad de síntomas ansiosos.",
+    cierre: "Gracias por completar el cuestionario. El resultado es una orientación clínica; cualquier inquietud debe revisarse con un especialista.",
+    tema: "health",
+    metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Sección",
+    periodo: "las últimas 2 semanas",
+  },
+  dass21: {
+    id: "dass21",
+    nombreEncuesta: "DASS-21 · Depresión, Ansiedad y Estrés",
+    bloques: dass21Bloques,
+    validarAlEnviar: dass21ValidarAlEnviar,
+    marca: "Health",
+    tagline: "Depression Anxiety Stress Scales · 21 ítems",
+    subtitulo: "Cuestionario autoaplicado que mide tres dimensiones del malestar emocional. No es un diagnóstico: orienta sobre dónde poner atención.",
+    cierre: "Gracias por completar el cuestionario. El resultado es una orientación clínica; cualquier inquietud debe revisarse con un especialista.",
+    tema: "health",
+    metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Sección",
+    periodo: "la última semana",
   },
 };
 
