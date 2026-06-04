@@ -10,6 +10,7 @@ import { mdqBloques, mdqValidarAlEnviar } from "./mdq";
 import { phq9Bloques, phq9ValidarAlEnviar } from "./phq9";
 import { gad7Bloques, gad7ValidarAlEnviar } from "./gad7";
 import { dass21Bloques, dass21ValidarAlEnviar } from "./dass21";
+import { bridgeCotizadorBloques, bridgeCotizadorValidarAlEnviar } from "./bridge-cotizador";
 
 export interface Vertical {
   id: string;
@@ -178,6 +179,20 @@ export const verticals: Record<string, Vertical> = {
     ocultarNegocio: true,
     bloqueEyebrow: "Sección",
     periodo: "la última semana",
+  },
+  "bridge-cotizador": {
+    id: "bridge-cotizador",
+    nombreEncuesta: "Brechas de información para cotizador",
+    bloques: bridgeCotizadorBloques,
+    validarAlEnviar: bridgeCotizadorValidarAlEnviar,
+    marca: "",
+    tagline: "Bridge · SJP",
+    subtitulo: "Si alguna pregunta no aplica, déjela en blanco. Cualquier dato, aunque sea parcial, nos sirve.",
+    cierre: "Muchas gracias por su tiempo.",
+    tema: "paraguas",
+    metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Bloque",
   },
 };
 
