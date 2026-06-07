@@ -14,7 +14,7 @@ interface EnviarLinkHandsToPayload {
   infoLink?: string;
 }
 
-// ── Hands-SM (MDQ y futuros instrumentos autoevaluativos) ──
+// ── Hands-SM (instrumentos autoaplicados de salud mental) ──
 interface HandsSmRecipient {
   email: string;
   name: string;
@@ -22,7 +22,11 @@ interface HandsSmRecipient {
 }
 
 interface EnviarLinkHandsSmPayload {
-  instrumento: "mdq";
+  instrumento: string;            // id corto (mdq, phq9, gad7, dass21, audit, ...)
+  instrumentoTitulo?: string;     // "MDQ", "AUDIT", etc.
+  instrumentoSub?: string;        // bajada corta para el correo
+  itemsLabel?: string;            // "10 ítems"
+  duracion?: string;              // "~3 min"
   pacienteName: string;
   tratanteName?: string;
   link: string;
@@ -72,30 +76,34 @@ function handsToEmailBody(p: EnviarLinkHandsToPayload): string {
   </div>`;
 }
 
-// ─── Cuerpo del correo (Hands-SM MDQ) ─────────────────────────────────────
+// ─── Cuerpo del correo (Hands-SM, genérico por instrumento) ────────────────
 function handsSmEmailBody(p: EnviarLinkHandsSmPayload, recipient: HandsSmRecipient): string {
   const esPaciente = recipient.role === "paciente";
   const greeting = `Hola ${recipient.name || (esPaciente ? p.pacienteName : "")},`;
 
+  const titulo = p.instrumentoTitulo || p.instrumento.toUpperCase();
+  const sub = p.instrumentoSub || "Cuestionario autoaplicado";
+  const items = p.itemsLabel || "Cuestionario";
+  const duracion = p.duracion || "unos minutos";
+
   const cuerpoPaciente = p.tratanteName
     ? `<p style="font-size:16px;line-height:1.7;margin:0 0 14px;">
-         ${p.tratanteName} te invita a responder un breve cuestionario sobre tu estado de ánimo
-         (MDQ — <em>Mood Disorder Questionnaire</em>). Son 15 preguntas, te toma unos 5 minutos.
+         ${p.tratanteName} te invita a responder un breve cuestionario (${titulo} — ${sub.toLowerCase()}).
+         Son ${items}, te toma ${duracion}.
        </p>
        <p style="font-size:15px;line-height:1.7;margin:0 0 22px;color:#4A5568;">
-         No hay respuestas buenas ni malas. Responde pensando en cómo has estado en general,
-         no en un día puntual.
+         No hay respuestas buenas ni malas. Responde con calma, pensando en cómo has estado.
        </p>`
     : `<p style="font-size:16px;line-height:1.7;margin:0 0 14px;">
-         Aquí está tu cuestionario del ánimo (MDQ). Son 15 preguntas, te toma unos 5 minutos.
+         Aquí está tu cuestionario ${titulo}. Son ${items}, te toma ${duracion}.
        </p>
        <p style="font-size:15px;line-height:1.7;margin:0 0 22px;color:#4A5568;">
-         Responde con calma, pensando en cómo has estado en general.
+         Responde con calma, pensando en cómo has estado.
        </p>`;
 
   const cuerpoTratante = `
     <p style="font-size:16px;line-height:1.7;margin:0 0 14px;">
-      Aquí está el link de la evaluación MDQ para <strong>${p.pacienteName}</strong>.
+      Aquí está el link de la evaluación ${titulo} para <strong>${p.pacienteName}</strong>.
       Puedes reenviarlo o aplicarlo directamente.
     </p>
     <p style="font-size:15px;line-height:1.7;margin:0 0 22px;color:#4A5568;">
@@ -104,7 +112,7 @@ function handsSmEmailBody(p: EnviarLinkHandsSmPayload, recipient: HandsSmRecipie
 
   const infoRow = p.infoLink
     ? `<p style="margin:18px 0 0;font-size:14px;line-height:1.6;">
-         ¿Qué es el MDQ?
+         ¿Qué es el ${titulo}?
          <a href="${p.infoLink}" style="color:#1B4D4A;font-weight:600;">Léelo aquí en 2 minutos →</a>
        </p>`
     : "";
@@ -113,7 +121,7 @@ function handsSmEmailBody(p: EnviarLinkHandsSmPayload, recipient: HandsSmRecipie
   <div style="font-family:-apple-system,BlinkMacSystemFont,'Plus Jakarta Sans',sans-serif;max-width:560px;margin:0 auto;background:#F2F0EB;color:#2F3A44;border-radius:10px;overflow:hidden;">
     <div style="background:linear-gradient(165deg,#1B4D4A 0%,#2A6B66 100%);color:#F2F0EB;padding:28px 26px;">
       <div style="color:#7BC4BC;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-family:monospace;">Operaria Health · Hands-SM</div>
-      <h1 style="margin:10px 0 0;font-size:24px;font-weight:600;">Cuestionario del Ánimo (MDQ)</h1>
+      <h1 style="margin:10px 0 0;font-size:24px;font-weight:600;">Cuestionario ${titulo}</h1>
     </div>
     <div style="padding:26px;">
       <p style="font-size:16px;line-height:1.7;margin:0 0 14px;">${greeting}</p>
@@ -161,11 +169,12 @@ export async function POST(req: NextRequest) {
       if (recipients.length === 0) {
         return NextResponse.json({ success: false, error: "No hay destinatarios válidos." }, { status: 400 });
       }
+      const tituloSubject = p.instrumentoTitulo || p.instrumento.toUpperCase();
       for (const r of recipients) {
         const { error } = await resend.emails.send({
           from,
           to: r.email,
-          subject: `Cuestionario MDQ — ${p.pacienteName}`,
+          subject: `Cuestionario ${tituloSubject} — ${p.pacienteName}`,
           html: handsSmEmailBody(p, r),
         });
         if (error) {

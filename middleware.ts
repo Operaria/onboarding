@@ -29,6 +29,10 @@ export function middleware(req: NextRequest) {
       !url.pathname.startsWith("/phq9/") &&
       !url.pathname.startsWith("/gad7/") &&
       !url.pathname.startsWith("/dass21/") &&
+      !url.pathname.startsWith("/audit/") &&
+      !url.pathname.startsWith("/isi/") &&
+      !url.pathname.startsWith("/pcl5/") &&
+      !url.pathname.startsWith("/asrs/") &&
       !url.pathname.startsWith("/que-es/") &&
       !url.pathname.startsWith("/hands-sm") &&
       !url.pathname.startsWith("/api/")

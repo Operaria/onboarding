@@ -4,7 +4,7 @@ import { useState } from "react";
 import { nameToSlug } from "@/lib/utils";
 
 type Status = "idle" | "sending" | "sent" | "error";
-type InstrumentoId = "dass21" | "phq9" | "gad7" | "mdq";
+type InstrumentoId = "dass21" | "phq9" | "gad7" | "mdq" | "audit" | "isi" | "pcl5" | "asrs";
 
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
@@ -16,7 +16,7 @@ interface InstrumentoOption {
   ruta: string;
   info: string;
   itemsLabel: string;
-  apiName: "mdq" | "phq9" | "gad7" | "dass21";
+  apiName: InstrumentoId;
 }
 
 const INSTRUMENTOS: InstrumentoOption[] = [
@@ -59,6 +59,46 @@ const INSTRUMENTOS: InstrumentoOption[] = [
     ruta: "mdq",
     info: "/que-es/mdq",
     apiName: "mdq",
+  },
+  {
+    id: "audit",
+    titulo: "AUDIT",
+    sub: "Consumo de alcohol (OMS)",
+    duracion: "~3 min",
+    itemsLabel: "10 ítems",
+    ruta: "audit",
+    info: "/que-es/audit",
+    apiName: "audit",
+  },
+  {
+    id: "isi",
+    titulo: "ISI",
+    sub: "Severidad del insomnio",
+    duracion: "~2 min",
+    itemsLabel: "7 ítems",
+    ruta: "isi",
+    info: "/que-es/isi",
+    apiName: "isi",
+  },
+  {
+    id: "pcl5",
+    titulo: "PCL-5",
+    sub: "Tamizaje de TEPT (DSM-5)",
+    duracion: "~6 min",
+    itemsLabel: "20 ítems",
+    ruta: "pcl5",
+    info: "/que-es/pcl5",
+    apiName: "pcl5",
+  },
+  {
+    id: "asrs",
+    titulo: "ASRS-v1.1",
+    sub: "Tamizaje de TDAH adulto (OMS)",
+    duracion: "~5 min",
+    itemsLabel: "18 ítems",
+    ruta: "asrs",
+    info: "/que-es/asrs",
+    apiName: "asrs",
   },
 ];
 
@@ -166,6 +206,9 @@ export default function HandsSmLauncher() {
         body: JSON.stringify({
           instrumento: inst.apiName,
           instrumentoTitulo: inst.titulo,
+          instrumentoSub: inst.sub,
+          itemsLabel: inst.itemsLabel,
+          duracion: inst.duracion,
           pacienteName: pacienteName.trim(),
           tratanteName: tratanteName.trim() || undefined,
           link: url,

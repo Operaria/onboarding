@@ -10,6 +10,10 @@ import { mdqBloques, mdqValidarAlEnviar } from "./mdq";
 import { phq9Bloques, phq9ValidarAlEnviar } from "./phq9";
 import { gad7Bloques, gad7ValidarAlEnviar } from "./gad7";
 import { dass21Bloques, dass21ValidarAlEnviar } from "./dass21";
+import { auditBloques, auditValidarAlEnviar } from "./audit";
+import { isiBloques, isiValidarAlEnviar } from "./isi";
+import { pcl5Bloques, pcl5ValidarAlEnviar } from "./pcl5";
+import { asrsBloques, asrsValidarAlEnviar } from "./asrs";
 import { bridgeCotizadorBloques, bridgeCotizadorValidarAlEnviar } from "./bridge-cotizador";
 
 export interface Vertical {
@@ -179,6 +183,66 @@ export const verticals: Record<string, Vertical> = {
     ocultarNegocio: true,
     bloqueEyebrow: "Sección",
     periodo: "la última semana",
+  },
+  audit: {
+    id: "audit",
+    nombreEncuesta: "AUDIT · Consumo de Alcohol",
+    bloques: auditBloques,
+    validarAlEnviar: auditValidarAlEnviar,
+    marca: "Health",
+    tagline: "Alcohol Use Disorders Identification Test · OMS · 10 ítems",
+    subtitulo: "Cuestionario breve para revisar tu relación con el alcohol durante el último año. No es un diagnóstico: orienta el siguiente paso clínico.",
+    cierre: "Gracias por completar el cuestionario. El resultado es una orientación clínica; cualquier inquietud debe revisarse con un profesional de salud.",
+    tema: "health",
+    metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Bloque",
+    periodo: "el último año",
+  },
+  isi: {
+    id: "isi",
+    nombreEncuesta: "ISI · Severidad del Insomnio",
+    bloques: isiBloques,
+    validarAlEnviar: isiValidarAlEnviar,
+    marca: "Health",
+    tagline: "Insomnia Severity Index · 7 ítems",
+    subtitulo: "Cuestionario breve para evaluar la severidad de tus dificultades para dormir. No es un diagnóstico: orienta la conversación clínica.",
+    cierre: "Gracias por completar el cuestionario. El resultado es una orientación clínica; cualquier inquietud debe revisarse con un profesional de salud.",
+    tema: "health",
+    metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Sección",
+    periodo: "las últimas 2 semanas",
+  },
+  pcl5: {
+    id: "pcl5",
+    nombreEncuesta: "PCL-5 · Tamizaje de TEPT",
+    bloques: pcl5Bloques,
+    validarAlEnviar: pcl5ValidarAlEnviar,
+    marca: "Health",
+    tagline: "PTSD Checklist for DSM-5 · 20 ítems",
+    subtitulo: "Cuestionario sobre cómo te ha afectado una experiencia estresante o traumática durante el último mes. No es un diagnóstico: orienta hacia evaluación especializada en trauma.",
+    cierre: "Gracias por completar el cuestionario. El resultado es una orientación clínica; cualquier inquietud debe revisarse con un profesional con formación en trauma.",
+    tema: "health",
+    metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Bloque",
+    periodo: "el último mes",
+  },
+  asrs: {
+    id: "asrs",
+    nombreEncuesta: "ASRS-v1.1 · Tamizaje TDAH adulto",
+    bloques: asrsBloques,
+    validarAlEnviar: asrsValidarAlEnviar,
+    marca: "Health",
+    tagline: "Adult ADHD Self-Report Scale · OMS · 18 ítems",
+    subtitulo: "Cuestionario breve sobre atención, organización, impulsividad y movimiento. No es un diagnóstico: orienta sobre la necesidad de una evaluación clínica formal.",
+    cierre: "Gracias por completar el cuestionario. El resultado es una orientación clínica; cualquier inquietud debe revisarse con un profesional con experiencia en TDAH adulto.",
+    tema: "health",
+    metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Parte",
+    periodo: "los últimos 6 meses",
   },
   "bridge-cotizador": {
     id: "bridge-cotizador",

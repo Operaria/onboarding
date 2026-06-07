@@ -7,6 +7,10 @@ import { PDFMdqReport } from "@/components/PDFMdqReport";
 import { PDFPhq9Report } from "@/components/PDFPhq9Report";
 import { PDFGad7Report } from "@/components/PDFGad7Report";
 import { PDFDass21Report } from "@/components/PDFDass21Report";
+import { PDFAuditReport } from "@/components/PDFAuditReport";
+import { PDFIsiReport } from "@/components/PDFIsiReport";
+import { PDFPcl5Report } from "@/components/PDFPcl5Report";
+import { PDFAsrsReport } from "@/components/PDFAsrsReport";
 import { formatDate } from "@/lib/utils";
 import { getVertical } from "@/lib/verticals";
 import { entradaLabels, OPT_NO_TENGO_GOOGLE } from "@/lib/verticals/barber";
@@ -20,6 +24,14 @@ import { calculateGad7Score, gad7BandaLabel } from "@/lib/gad7";
 import type { Gad7Result } from "@/lib/gad7";
 import { calculateDass21Score, dass21BandaLabel, dass21SubescalaLabel } from "@/lib/dass21";
 import type { Dass21Result } from "@/lib/dass21";
+import { calculateAuditScore, auditZonaLabel } from "@/lib/audit";
+import type { AuditResult } from "@/lib/audit";
+import { calculateIsiScore, isiBandaLabel } from "@/lib/isi";
+import type { IsiResult } from "@/lib/isi";
+import { calculatePcl5Score, pcl5SeveridadLabel } from "@/lib/pcl5";
+import type { Pcl5Result } from "@/lib/pcl5";
+import { calculateAsrsScore, asrsTamizajeLabel } from "@/lib/asrs";
+import type { AsrsResult } from "@/lib/asrs";
 import type { SubmitPayload, RespuestaValor } from "@/lib/types";
 import React from "react";
 
@@ -120,7 +132,11 @@ export async function POST(req: NextRequest) {
     const isPhq9 = vertical.id === "phq9";
     const isGad7 = vertical.id === "gad7";
     const isDass21 = vertical.id === "dass21";
-    const isHandsSm = isMdq || isPhq9 || isGad7 || isDass21;
+    const isAudit = vertical.id === "audit";
+    const isIsi = vertical.id === "isi";
+    const isPcl5 = vertical.id === "pcl5";
+    const isAsrs = vertical.id === "asrs";
+    const isHandsSm = isMdq || isPhq9 || isGad7 || isDass21 || isAudit || isIsi || isPcl5 || isAsrs;
 
     let pdfBuffer: Buffer;
     let subject: string;
@@ -170,6 +186,61 @@ export async function POST(req: NextRequest) {
       pdfBuffer = await renderToBuffer(element as any);
       subject = `DASS-21 D:${result.depresion.score} A:${result.ansiedad.score} S:${result.estres.score} — ${payload.nombreFormateado}`;
       html = dass21HtmlBody(payload, result);
+    } else if (isAudit) {
+      const result = calculateAuditScore(payload.respuestas);
+      const element = React.createElement(PDFAuditReport, {
+        pacienteName: payload.nombreFormateado,
+        edad: payload.edad,
+        fecha,
+        tratanteName: payload.tratanteName,
+        result,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+      subject = `AUDIT ${result.totalScore}/40 (${auditZonaLabel(result.zona)}) — ${payload.nombreFormateado}`;
+      html = auditHtmlBody(payload, result);
+    } else if (isIsi) {
+      const result = calculateIsiScore(payload.respuestas);
+      const element = React.createElement(PDFIsiReport, {
+        pacienteName: payload.nombreFormateado,
+        edad: payload.edad,
+        fecha,
+        tratanteName: payload.tratanteName,
+        result,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+      subject = `ISI ${result.totalScore}/28 (${isiBandaLabel(result.banda)}) — ${payload.nombreFormateado}`;
+      html = isiHtmlBody(payload, result);
+    } else if (isPcl5) {
+      const result = calculatePcl5Score(payload.respuestas);
+      const element = React.createElement(PDFPcl5Report, {
+        pacienteName: payload.nombreFormateado,
+        edad: payload.edad,
+        fecha,
+        tratanteName: payload.tratanteName,
+        result,
+        respuestas: payload.respuestas,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+      const positivoTag = result.cortePositivo ? " · ≥33" : "";
+      const dxTag = result.diagnosticoProvisorio ? " · DSM-5 cumple" : "";
+      subject = `PCL-5 ${result.totalScore}/80 (${pcl5SeveridadLabel(result.severidad)}) — ${payload.nombreFormateado}${positivoTag}${dxTag}`;
+      html = pcl5HtmlBody(payload, result);
+    } else if (isAsrs) {
+      const result = calculateAsrsScore(payload.respuestas);
+      const element = React.createElement(PDFAsrsReport, {
+        pacienteName: payload.nombreFormateado,
+        edad: payload.edad,
+        fecha,
+        tratanteName: payload.tratanteName,
+        result,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = await renderToBuffer(element as any);
+      subject = `ASRS-v1.1 ${asrsTamizajeLabel(result.partAPositive)} (Part A ${result.partAEndorsed}/6) — ${payload.nombreFormateado}`;
+      html = asrsHtmlBody(payload, result);
     } else if (isMdq) {
       // ── MDQ: tamizaje binario + informe SOCHITAB ──
       const result = calculateMdqScore(payload.respuestas);
@@ -263,6 +334,14 @@ export async function POST(req: NextRequest) {
       ? `GAD7-${payload.cliente}.pdf`
       : isDass21
       ? `DASS21-${payload.cliente}.pdf`
+      : isAudit
+      ? `AUDIT-${payload.cliente}.pdf`
+      : isIsi
+      ? `ISI-${payload.cliente}.pdf`
+      : isPcl5
+      ? `PCL5-${payload.cliente}.pdf`
+      : isAsrs
+      ? `ASRS-${payload.cliente}.pdf`
       : isSpm2
       ? `SPM2-${vertical.id === "spm2-hogar" ? "Hogar" : "Escolar"}-${payload.negocio || payload.cliente}.pdf`
       : `Levantamiento-${payload.negocio || payload.cliente}.pdf`;
@@ -460,6 +539,162 @@ function gad7HtmlBody(p: SubmitPayload, result: Gad7Result): string {
       ${result.funcionalidad ? `<p style="color:#3D4450;font-size:13px;">Impacto funcional (ítem 8): <strong>${result.funcionalidad}</strong></p>` : ""}
       <hr style="border:none;border-top:1px solid #D6D2CB;margin:16px 0;">
       <p style="color:#9E9C96;font-size:12px;">El PDF adjunto contiene el desglose ítem por ítem, la interpretación clínica y el disclaimer.</p>
+    </div>
+  </div>`;
+}
+
+// ─── AUDIT ──────────────────────────────────────────────────────────────────
+
+function zonaColorAudit(z: AuditResult["zona"]): string {
+  if (z === "I") return "#27AE60";
+  if (z === "II") return "#E8A838";
+  if (z === "III") return "#D97706";
+  return "#C0392B";
+}
+
+function auditHtmlBody(p: SubmitPayload, result: AuditResult): string {
+  const color = zonaColorAudit(result.zona);
+  const tratanteLine = p.tratanteName
+    ? `<p style="margin:6px 0 0;color:rgba(242,240,235,.7);font-size:13px;">Tratante: ${p.tratanteName}</p>`
+    : "";
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F2F0EB;color:#3D4450;">
+    <div style="background:#1B4D4A;color:#fff;padding:24px;border-radius:8px 8px 0 0;">
+      <div style="color:#4A9B93;font-size:11px;letter-spacing:3px;text-transform:uppercase;">AUDIT · Alcohol (OMS)</div>
+      <h1 style="margin:8px 0 0;font-size:20px;">Resultado de tamizaje</h1>
+      <p style="margin:6px 0 0;color:#4A9B93;font-size:14px;">Paciente: ${p.nombreFormateado}</p>
+      ${tratanteLine}
+    </div>
+    <div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;">
+      <div style="background:${color};color:#fff;padding:16px 18px;border-radius:6px;margin-bottom:16px;">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85;">Puntaje · zona OMS</div>
+        <div style="font-size:30px;font-weight:700;font-family:monospace;margin-top:4px;">${result.totalScore} / 40</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px;">${auditZonaLabel(result.zona)}</div>
+      </div>
+      <p style="color:#3D4450;font-size:13px;">AUDIT-C (ítems 1–3): <strong>${result.auditCScore} / 12</strong> ${result.auditCScore >= 4 ? "· consumo de riesgo (≥4)" : "· bajo riesgo"}</p>
+      <hr style="border:none;border-top:1px solid #D6D2CB;margin:16px 0;">
+      <p style="color:#9E9C96;font-size:12px;">El PDF adjunto contiene el desglose ítem por ítem, los subscores por bloque (consumo, dependencia, consecuencias), la interpretación clínica y el disclaimer.</p>
+    </div>
+  </div>`;
+}
+
+// ─── ISI ────────────────────────────────────────────────────────────────────
+
+function bandaColorIsi(b: IsiResult["banda"]): string {
+  if (b === "sin_insomnio") return "#27AE60";
+  if (b === "subumbral") return "#E8A838";
+  if (b === "moderado") return "#D97706";
+  return "#C0392B";
+}
+
+function isiHtmlBody(p: SubmitPayload, result: IsiResult): string {
+  const color = bandaColorIsi(result.banda);
+  const tratanteLine = p.tratanteName
+    ? `<p style="margin:6px 0 0;color:rgba(242,240,235,.7);font-size:13px;">Tratante: ${p.tratanteName}</p>`
+    : "";
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F2F0EB;color:#3D4450;">
+    <div style="background:#1B4D4A;color:#fff;padding:24px;border-radius:8px 8px 0 0;">
+      <div style="color:#4A9B93;font-size:11px;letter-spacing:3px;text-transform:uppercase;">ISI · Insomnio</div>
+      <h1 style="margin:8px 0 0;font-size:20px;">Resultado de tamizaje</h1>
+      <p style="margin:6px 0 0;color:#4A9B93;font-size:14px;">Paciente: ${p.nombreFormateado}</p>
+      ${tratanteLine}
+    </div>
+    <div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;">
+      <div style="background:${color};color:#fff;padding:16px 18px;border-radius:6px;margin-bottom:16px;">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85;">Puntaje · severidad</div>
+        <div style="font-size:30px;font-weight:700;font-family:monospace;margin-top:4px;">${result.totalScore} / 28</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px;">${isiBandaLabel(result.banda)}</div>
+      </div>
+      <hr style="border:none;border-top:1px solid #D6D2CB;margin:16px 0;">
+      <p style="color:#9E9C96;font-size:12px;">El PDF adjunto contiene el desglose ítem por ítem, la interpretación clínica y el disclaimer.</p>
+    </div>
+  </div>`;
+}
+
+// ─── PCL-5 ──────────────────────────────────────────────────────────────────
+
+function severidadColorPcl5(s: Pcl5Result["severidad"]): string {
+  if (s === "minimo") return "#27AE60";
+  if (s === "leve") return "#E8A838";
+  if (s === "moderado") return "#D97706";
+  return "#C0392B";
+}
+
+function pcl5HtmlBody(p: SubmitPayload, result: Pcl5Result): string {
+  const color = severidadColorPcl5(result.severidad);
+  const tratanteLine = p.tratanteName
+    ? `<p style="margin:6px 0 0;color:rgba(242,240,235,.7);font-size:13px;">Tratante: ${p.tratanteName}</p>`
+    : "";
+  const flagsBlock = (result.cortePositivo || result.diagnosticoProvisorio)
+    ? `<div style="background:#9B1C0F;color:#fff;padding:14px 16px;border-radius:6px;margin-bottom:14px;border-left:4px solid #fff;">
+         <div style="font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">Tamizaje positivo</div>
+         <div style="font-size:13px;margin-top:6px;line-height:1.55;">
+           ${result.cortePositivo ? "Puntaje total ≥ 33 (corte clínico)." : ""}
+           ${result.diagnosticoProvisorio ? " Cumple la regla DSM-5 por clusters B+C+D+E." : ""}
+           Se sugiere derivación a profesional con formación en trauma.
+         </div>
+       </div>`
+    : "";
+  const clustersRow = result.clusters.map((cl) =>
+    `<tr><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;font-size:12px;">
+       <strong>${cl.cluster}</strong> · ${cl.nombre}
+     </td><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;text-align:right;font-size:12px;font-family:monospace;">
+       ${cl.raw} / ${cl.max}
+     </td><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;text-align:right;font-size:11px;color:#9E9C96;">
+       ${cl.itemsEndorsed} ítems ≥2
+     </td></tr>`
+  ).join("");
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#F2F0EB;color:#3D4450;">
+    <div style="background:#1B4D4A;color:#fff;padding:24px;border-radius:8px 8px 0 0;">
+      <div style="color:#4A9B93;font-size:11px;letter-spacing:3px;text-transform:uppercase;">PCL-5 · TEPT (DSM-5)</div>
+      <h1 style="margin:8px 0 0;font-size:20px;">Resultado de tamizaje</h1>
+      <p style="margin:6px 0 0;color:#4A9B93;font-size:14px;">Paciente: ${p.nombreFormateado}</p>
+      ${tratanteLine}
+    </div>
+    <div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;">
+      ${flagsBlock}
+      <div style="background:${color};color:#fff;padding:16px 18px;border-radius:6px;margin-bottom:16px;">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85;">Puntaje · severidad</div>
+        <div style="font-size:30px;font-weight:700;font-family:monospace;margin-top:4px;">${result.totalScore} / 80</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px;">${pcl5SeveridadLabel(result.severidad)}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">${clustersRow}</table>
+      <hr style="border:none;border-top:1px solid #D6D2CB;margin:16px 0;">
+      <p style="color:#9E9C96;font-size:12px;">El PDF adjunto contiene el desglose ítem por ítem, los subscores por cluster DSM-5, la regla de tamizaje y el disclaimer. La descripción del evento (si la paciente la escribió) aparece destacada.</p>
+    </div>
+  </div>`;
+}
+
+// ─── ASRS-v1.1 ──────────────────────────────────────────────────────────────
+
+function asrsHtmlBody(p: SubmitPayload, result: AsrsResult): string {
+  const color = result.partAPositive ? "#C0392B" : "#27AE60";
+  const tratanteLine = p.tratanteName
+    ? `<p style="margin:6px 0 0;color:rgba(242,240,235,.7);font-size:13px;">Tratante: ${p.tratanteName}</p>`
+    : "";
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F2F0EB;color:#3D4450;">
+    <div style="background:#1B4D4A;color:#fff;padding:24px;border-radius:8px 8px 0 0;">
+      <div style="color:#4A9B93;font-size:11px;letter-spacing:3px;text-transform:uppercase;">ASRS-v1.1 · TDAH adulto</div>
+      <h1 style="margin:8px 0 0;font-size:20px;">Resultado de tamizaje</h1>
+      <p style="margin:6px 0 0;color:#4A9B93;font-size:14px;">Paciente: ${p.nombreFormateado}</p>
+      ${tratanteLine}
+    </div>
+    <div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;">
+      <div style="background:${color};color:#fff;padding:16px 18px;border-radius:6px;margin-bottom:16px;">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85;">Parte A · zona crítica</div>
+        <div style="font-size:30px;font-weight:700;font-family:monospace;margin-top:4px;">${result.partAEndorsed} / 6</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px;">${asrsTamizajeLabel(result.partAPositive)}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;">Inatención (ítems 1, 2, 3, 4, 7–11)</td><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;text-align:right;font-family:monospace;font-weight:600;">${result.inatencionScore} / 36</td></tr>
+        <tr><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;">Hiperactividad / impulsividad (ítems 5, 6, 12–18)</td><td style="padding:6px 0;border-bottom:1px solid #D6D2CB;text-align:right;font-family:monospace;font-weight:600;">${result.hiperactividadScore} / 36</td></tr>
+        <tr><td style="padding:6px 0;">Total bruto (referencial)</td><td style="padding:6px 0;text-align:right;font-family:monospace;font-weight:600;">${result.totalScore} / 72</td></tr>
+      </table>
+      <hr style="border:none;border-top:1px solid #D6D2CB;margin:16px 0;">
+      <p style="color:#9E9C96;font-size:12px;">El PDF adjunto contiene el desglose ítem por ítem, marca cuáles cayeron en zona crítica de la Parte A, los subscores por subescala y el disclaimer.</p>
     </div>
   </div>`;
 }
