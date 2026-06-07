@@ -9,10 +9,6 @@ import { slugToName, formatDate } from "@/lib/utils";
 import Portada from "./Portada";
 import Bloque from "./Bloque";
 import SaveBar from "./SaveBar";
-import FimResultado from "./FimResultado";
-import { scoreFim, type FimResult } from "@/lib/fim";
-import { detectarAlertaSuicidio, type AlertaSuicidio } from "@/lib/alerta-suicidio";
-import AlertaSuicidioModal from "./AlertaSuicidio";
 
 interface Props {
   cliente: string;
@@ -59,9 +55,6 @@ export default function Cuestionario({
   const [enviando, setEnviando] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [warningMensaje, setWarningMensaje] = useState<string | null>(null);
-  const [fimResult, setFimResult] = useState<FimResult | null>(null);
-  const [alertaActiva, setAlertaActiva] = useState<AlertaSuicidio | null>(null);
-  const alertaPrevRef = useRef<boolean>(false);
 
   const contenidoRef = useRef<HTMLDivElement>(null);
   const bloqueDolorRef = useRef<HTMLDivElement>(null);
@@ -109,18 +102,6 @@ export default function Cuestionario({
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [storageSlug, respuestas]);
 
-  // Detección de alerta suicida: solo disparamos el modal cuando se ENCIENDE
-  // (transición de no-alerta a alerta). Si el paciente la cierra y luego cambia
-  // a otro valor no-alerta, no volvemos a abrirla. Si vuelve a marcar el ítem,
-  // sí re-aparece.
-  useEffect(() => {
-    const alerta = detectarAlertaSuicidio(respuestas, vertical.id);
-    if (alerta && !alertaPrevRef.current) {
-      setAlertaActiva(alerta);
-    }
-    alertaPrevRef.current = !!alerta;
-  }, [respuestas, vertical.id]);
-
   useEffect(() => {
     if (tickRef.current) clearInterval(tickRef.current);
     if (savedAt && !dirty && !enviando) {
@@ -158,14 +139,6 @@ export default function Cuestionario({
   };
 
   const submit = async () => {
-    // FIM: aplicación y respuesta inmediata. Se calcula y se muestra en pantalla
-    // (sin correo). El TO la aplica y ve el resultado al instante.
-    if (vertical.id === "fim") {
-      setFimResult(scoreFim(respuestas));
-      clearRespuestas(storageSlug);
-      if (typeof window !== "undefined") window.scrollTo({ top: 0 });
-      return;
-    }
     setEnviando(true);
     setStatus({ tone: "muted", text: "Enviando tus respuestas..." });
     try {
@@ -222,18 +195,7 @@ export default function Cuestionario({
   const temaClass =
     [temaBase, vertical.paleta === "self" ? "theme-self" : ""].filter(Boolean).join(" ") || undefined;
 
-  const infoHref =
-    vertical.id === "spm2-hogar" ? "/que-es/papas"
-    : vertical.id === "spm2-escolar" ? "/que-es/profes"
-    : vertical.id === "mdq" ? "/que-es/mdq"
-    : vertical.id === "phq9" ? "/que-es/phq9"
-    : vertical.id === "gad7" ? "/que-es/gad7"
-    : vertical.id === "dass21" ? "/que-es/dass21"
-    : undefined;
-
-  if (fimResult) {
-    return <FimResultado result={fimResult} nombre={nombre} negocio={negocio} fecha={fecha} edad={edad} />;
-  }
+  const infoHref = undefined;
 
   return (
     <div className={temaClass}>
@@ -278,7 +240,7 @@ export default function Cuestionario({
         </div>
       </div>
 
-      <SaveBar status={status} enviando={enviando} onEnviar={onEnviar} tema={vertical.tema} enviarLabel={vertical.id === "fim" ? "Ver resultado" : undefined} />
+      <SaveBar status={status} enviando={enviando} onEnviar={onEnviar} tema={vertical.tema} enviarLabel={undefined} />
 
       {warningMensaje && (
         <div className="fixed inset-0 bg-black/60 z-[1000] flex items-center justify-center p-6">
@@ -297,13 +259,6 @@ export default function Cuestionario({
             </div>
           </div>
         </div>
-      )}
-
-      {alertaActiva && (
-        <AlertaSuicidioModal
-          alerta={alertaActiva}
-          onContinuar={() => setAlertaActiva(null)}
-        />
       )}
 
       {showModal && (
