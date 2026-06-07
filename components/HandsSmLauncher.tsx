@@ -282,23 +282,29 @@ export default function HandsSmLauncher() {
           <>
             <Label>Instrumento</Label>
             <div className="space-y-2.5 mb-2">
-              {INSTRUMENTOS.map((i) => (
-                <InstrumentoCard
-                  key={i.id}
-                  inst={i}
-                  active={instrumento === i.id}
-                  onClick={() => setInstrumento(i.id)}
-                />
-              ))}
+              {INSTRUMENTOS.map((i) => {
+                const active = instrumento === i.id;
+                return (
+                  <div key={i.id}>
+                    <InstrumentoCard
+                      inst={i}
+                      active={active}
+                      onClick={() => setInstrumento(i.id)}
+                    />
+                    {active && (
+                      <a
+                        href={i.info}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block mt-2 ml-1 font-sans font-semibold text-teal text-[13px] underline underline-offset-4 decoration-teal/40 hover:text-petrol transition"
+                      >
+                        ¿Qué es {i.titulo}? →
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <a
-              href={inst.info}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block mt-3 font-sans font-semibold text-teal text-[13px] underline underline-offset-4 decoration-teal/40 hover:text-petrol transition"
-            >
-              ¿Qué es {inst.titulo}? →
-            </a>
 
             <div className="h-px bg-border my-8" />
 
