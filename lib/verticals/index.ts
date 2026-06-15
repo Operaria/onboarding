@@ -4,6 +4,9 @@ import { barberBloques, barberValidarAlEnviar } from "./barber";
 import { webBloques, webValidarAlEnviar } from "./web";
 import { cindyBloques, cindyValidarAlEnviar } from "./cindy";
 import { bridgeCotizadorBloques, bridgeCotizadorValidarAlEnviar } from "./bridge-cotizador";
+import { cotizaSjpBloques, cotizaSjpValidarAlEnviar } from "./cotiza-sjp";
+import { psiquiatraBloques, psiquiatraValidarAlEnviar } from "./psiquiatra";
+import { resto360Bloques, resto360ValidarAlEnviar } from "./resto360";
 
 export interface Vertical {
   id: string;
@@ -75,6 +78,50 @@ export const verticals: Record<string, Vertical> = {
     cierre: "Muchas gracias por su tiempo.",
     tema: "paraguas",
     metaClienteLabel: "Responde",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Bloque",
+  },
+  "cotiza-sjp": {
+    id: "cotiza-sjp",
+    nombreEncuesta: "Solicita tu cotización",
+    bloques: cotizaSjpBloques,
+    validarAlEnviar: cotizaSjpValidarAlEnviar,
+    marca: "San Jorge Packaging",
+    tagline: "Cotiza tu envase",
+    subtitulo: "Cuéntanos qué necesitas y te preparamos una cotización a tu medida.",
+    cierre: "Gracias. Recibimos tu solicitud y te enviaremos la cotización al correo indicado.",
+    tema: "health",
+    metaClienteLabel: "Cliente",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Paso",
+  },
+  psiquiatra: {
+    id: "psiquiatra",
+    nombreEncuesta: "Súmate al piloto",
+    bloques: psiquiatraBloques,
+    validarAlEnviar: psiquiatraValidarAlEnviar,
+    marca: "OperaHands",
+    tagline: "Psiquiatras",
+    subtitulo: "Estamos abriendo un piloto cerrado para probar el asistente que escribe los informes contigo. Si te interesa entrar, cuéntanos un poco de ti.",
+    cierre: "Gracias. Te escribimos en los próximos días para coordinar el inicio del piloto.",
+    tema: "health",
+    metaClienteLabel: "Tu nombre",
+    ocultarNegocio: true,
+    bloqueEyebrow: "Bloque",
+  },
+  resto360: {
+    id: "resto360",
+    nombreEncuesta: "Tu restorán, tu anfitrión",
+    bloques: resto360Bloques,
+    validarAlEnviar: resto360ValidarAlEnviar,
+    marca: "Flow",
+    tagline: "Cuéntanos cómo funciona tu restorán y armamos tu anfitrión a tu medida.",
+    subtitulo:
+      "Diez minutos. Sin tecnicismos. Lo que nos cuentes acá es lo que tu anfitrión va a saber de tu casa.",
+    cierre:
+      "Listo. Con esto armamos tu anfitrión y te llega una propuesta hecha a la medida de tu restorán. Gracias por abrirnos la puerta.",
+    tema: "flow",
+    metaClienteLabel: "Restorán",
     ocultarNegocio: true,
     bloqueEyebrow: "Bloque",
   },
