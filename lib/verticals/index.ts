@@ -20,6 +20,8 @@ export interface Vertical {
   cierre?: string;
   tema?: "flow" | "paraguas" | "health";
   audio?: boolean;
+  /** Correo destino de los envíos de esta encuesta. Si se omite, usa DESTINATION_EMAIL (global). */
+  destino?: string;
   metaClienteLabel?: string;
   metaNegocioLabel?: string;
   ocultarNegocio?: boolean;
@@ -87,6 +89,7 @@ export const verticals: Record<string, Vertical> = {
     bloques: cotizaSjpBloques,
     validarAlEnviar: cotizaSjpValidarAlEnviar,
     marca: "San Jorge Packaging",
+    destino: "sjpcotizaciones@gmail.com",
     tagline: "Cotiza tu envase",
     subtitulo: "Cuéntanos qué necesitas y te preparamos una cotización a tu medida.",
     cierre: "Gracias. Recibimos tu solicitud y te enviaremos la cotización al correo indicado.",

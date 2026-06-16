@@ -1,50 +1,54 @@
 # Cotiza SJP · Formulario de cotización para clientes finales
 
 **Vertical id:** `cotiza-sjp`
-**Tema:** flow (navy / teal · operativo)
+**Tema:** health (petrol / teal · clínico-editorial)
 **Ruta:** `app/(flow)/cotiza-sjp/[cliente]/page.tsx`
 **Marca:** San Jorge Packaging · pie "Diseñado por Operaria"
+**Destino de los envíos:** `sjpcotizaciones@gmail.com` (fijo en el registro, campo `destino`).
 
-## Formato del link
+## Formato del link (lo que manda Gaby)
 
 ```
-https://onboarding.operaria.cl/cotiza-sjp/nuevo
+https://onboarding.operaria.cl/cotiza-sjp/<cliente>
 ```
 
-El segmento final (`nuevo`) es solo un slug de ruta; los datos reales del
-cliente se capturan dentro del formulario (bloque "Tus datos"). Cinthia puede
-usar un slug personalizado por cliente si quiere (`/cotiza-sjp/wild-foods`),
-pero no es necesario.
+- El segmento final es el **slug del cliente** y personaliza el saludo.
+- **Regla para Gaby:** toma el nombre del cliente → minúsculas → espacios por
+  guiones → pégalo después de `/cotiza-sjp/`. Sin `?negocio` (no se usa).
+  - Cliente "Linar SPA" → `/cotiza-sjp/linar-spa` → saluda "Linar Spa".
+  - Genérico → `/cotiza-sjp/nuevo` → saluda "Nuevo".
+- `/cotiza-sjp` a secas (sin slug) da 404 por diseño: el link SIEMPRE lleva slug.
 
-## Qué captura (calza con cotizador_core.calcular)
+## Qué captura (verdad de terreno de Cinthia, 13–15 jun 2026)
 
 - **Cabecera (1 vez):** razón social, RUT, contacto, correo, teléfono (opcional).
-- **Producto 1 (guiado):** tipo de envase · uso · ancho×alto mm · fuelle (solo
-  Doypack) · impresión + colores · zipper (no Film) · válvula (solo Doypack) ·
-  cantidad (unidades; Film en unidades o metros).
+- **Producto:** tipo (Doypack · Pouche · Film).
+  - **Doypack/Pouche:** ancho × alto (mm), fuelle (solo Doypack), zipper.
+  - **Film:** SOLO dos medidas — Largo (ancho) y Paso de taca (alto); no hay
+    tercera medida (en film el alto ES el paso de taca).
+  - **Común:** n° de diseños, cantidad (envases si bolsa; KILOS si film),
+    materialidad (la entrega el cliente).
 - **Productos adicionales:** tabla repetible (una fila por envase).
 
-## Decisiones de diseño (acordadas con Cinthia + Eco)
+## Reglas de negocio embebidas
 
-- **No se pide el material:** se pregunta el USO y SJP deduce la estructura.
-- **Nunca se piden kilos:** el motor los calcula. El film se cobra por kilo pero
-  el cliente da unidades o metros.
-- **Validación mínima al enviar:** razón social + RUT + correo + tipo + medidas
-  + cantidad del primer producto. El resto se conversa.
+- **Mínimos por n° de diseños** (informados y, en film, validados al enviar):
+  - Film: 1 diseño = 10 kg; multidiseño = 5 kg por diseño (12 diseños ⇒ 60 kg).
+  - Pouch/Doypack: 1 diseño = 1.000 u; multidiseño = 300 u por diseño.
+- El **film se pide en kilos** (unidad natural de la bobina).
+- No se piden colores (Cinthia pide "cantidad de diseños"); SJP fija su estándar
+  (4 colores, 100% blanco, bilámina) al definir el arte.
 
-## Pendientes antes de producción
+## Entrega y deploy
 
-1. **Tabla uso → estructura estándar:** confirmar con Cinthia qué material
-   asigna SJP a cada uso (café, snack seco, líquidos, congelados…). Hoy el
-   formulario captura el uso; el material lo completa el equipo al cotizar.
-2. **Destino del informe:** definir a qué correo llega la ficha. Sugerencia:
-   `sjpcotizaciones@gmail.com` (el buzón que el pipeline ya lee) o el de Cinthia.
-   Se configura en env de Vercel (`DESTINATION_EMAIL`) — tarea de Up.
-3. **Film unidades vs metros:** confirmar con Cinthia el caso típico.
+- **Llega a:** `sjpcotizaciones@gmail.com` (campo `destino` de la encuesta;
+  el global `DESTINATION_EMAIL` queda solo de respaldo para otras encuestas).
+- **Deploy:** `git push origin main` en `Operaria/onboarding` → producción
+  (onboarding.operaria.cl). Afecta el sitio en vivo: confirmar con Francisco.
 
 ## Estado
 
-- Creada localmente · pendiente revisión Francisco/Cinthia · NO desplegada.
-- Deploy: `git push origin main` en `Operaria/onboarding` (afecta sitio en vivo).
+- En vivo, ajustes de Cinthia aplicados (reunión 15 jun). Ruteo de correo por
+  encuesta agregado 16 jun.
 
 *Diseñado por Operaria*
