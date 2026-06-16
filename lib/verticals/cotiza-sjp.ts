@@ -8,11 +8,17 @@ import type { Bloque, Respuestas } from "../types";
  *
  *   Doypack: ancho, alto, fuelle, n° diseños, cantidad de envases, zipper, materialidad
  *   Pouche : ancho, alto, n° diseños, cantidad de envases, zipper, materialidad
- *   Film   : largo, alto, paso de taca, n° diseños, cantidad de KILOS, materialidad
+ *   Film   : largo (ancho), alto = paso de taca, n° diseños, cantidad de KILOS, materialidad
  *
  * Notas de diseño (Cinthia manda sobre supuestos previos):
  *  - La MATERIALIDAD la entrega el cliente (no se deduce del uso).
  *  - El FILM se pide en KILOS (unidad natural de la bobina).
+ *  - FILM = SOLO dos medidas: largo (ancho) × alto. En film "el alto es el paso de
+ *    taca" (reunión 15 jun: "el film solo es largo o ancho por alto, no hay más" /
+ *    "se elimina paso de taca"). No se pide una tercera medida.
+ *  - MÍNIMOS por n° de diseños (reunión 15 jun): Film → 1 diseño = 10 kg, multidiseño
+ *    = 5 kg por diseño (12 diseños ⇒ 60 kg). Pouch/Doypack → 1 diseño = 1.000 u,
+ *    multidiseño = 300 u por tipo. El formulario los informa y valida el de film.
  *  - No se piden colores (Cinthia pide "cantidad de diseños"); el motor asume su
  *    estándar y SJP ajusta colores al definir el arte.
  *  - Nombre + RUT: sobre todo para clientes nuevos.
@@ -23,7 +29,6 @@ import type { Bloque, Respuestas } from "../types";
 const OPCIONES_TIPO = [
   "Doypack",
   "Pouche",
-  "Pouche 3 sellos",
   "Film",
 ];
 
@@ -83,27 +88,20 @@ export const cotizaSjpBloques: Bloque[] = [
         mostrarSi: { id: "p1_tipo", igual: "Doypack" },
       },
 
-      // — Film: largo, alto, paso de taca —
+      // — Film: SOLO dos medidas (largo × alto, donde alto = paso de taca) —
       {
         id: "p1_film_largo",
         tipo: "number",
-        label: "Largo (mm)",
-        placeholder: "Ej: 200",
+        label: "Largo (ancho) — mm",
+        placeholder: "Ej: 208",
         mostrarSi: { id: "p1_tipo", igual: "Film" },
       },
       {
         id: "p1_film_alto",
         tipo: "number",
-        label: "Alto (mm)",
-        placeholder: "Ej: 150",
-        mostrarSi: { id: "p1_tipo", igual: "Film" },
-      },
-      {
-        id: "p1_film_paso",
-        tipo: "number",
-        label: "Paso de taca (mm)",
-        hint: "El largo de cada repetición del diseño en la bobina (entre marcas de registro). Si no lo conoces, déjalo en blanco.",
-        placeholder: "Ej: 200",
+        label: "Paso de taca (alto) — mm",
+        hint: "En el film, el alto es el paso de taca: el largo de cada repetición del diseño en la bobina. Son la misma medida.",
+        placeholder: "Ej: 130",
         mostrarSi: { id: "p1_tipo", igual: "Film" },
       },
 
@@ -112,7 +110,7 @@ export const cotizaSjpBloques: Bloque[] = [
         id: "p1_disenos",
         tipo: "number",
         label: "Cantidad de diseños",
-        hint: "Cuántas artes distintas (ej: 3 sabores = 3 diseños).",
+        hint: "Cuántas artes distintas (ej: 3 sabores = 3 diseños). Define el mínimo a producir: en film, 1 diseño = 10 kg y desde 2 diseños son 5 kg por diseño; en bolsas, 1 diseño = 1.000 unidades y desde 2 son 300 por diseño.",
         placeholder: "Ej: 1",
       },
 
@@ -121,7 +119,7 @@ export const cotizaSjpBloques: Bloque[] = [
         id: "p1_envases",
         tipo: "texto",
         label: "Cantidad de envases",
-        hint: "Puedes indicar más de una cantidad (separadas por coma) para comparar precio por volumen.",
+        hint: "Mínimo 1.000 unidades (o 300 por diseño si tienes más de uno). Puedes indicar más de una cantidad (separadas por coma) para comparar precio por volumen.",
         placeholder: "Ej: 5.000 y 10.000",
         mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
       },
@@ -129,7 +127,8 @@ export const cotizaSjpBloques: Bloque[] = [
         id: "p1_kilos",
         tipo: "number",
         label: "Cantidad de kilos",
-        placeholder: "Ej: 300",
+        hint: "Mínimo 10 kg con un diseño; 5 kg por diseño si tienes más de uno.",
+        placeholder: "Ej: 60",
         mostrarSi: { id: "p1_tipo", igual: "Film" },
       },
 
@@ -203,10 +202,15 @@ export function cotizaSjpValidarAlEnviar(respuestas: Respuestas): string | null 
   const esFilm = respuestas.p1_tipo === "Film";
   if (esFilm) {
     if (!respuestas.p1_film_largo || !respuestas.p1_film_alto) {
-      return "Indícanos el largo y el alto del film en milímetros.";
+      return "Indícanos el largo y el alto (paso de taca) del film en milímetros.";
     }
     if (!respuestas.p1_kilos) {
       return "Indícanos la cantidad de kilos.";
+    }
+    const disenos = Number(respuestas.p1_disenos) || 1;
+    const minKg = disenos >= 2 ? 5 * disenos : 10;
+    if (Number(respuestas.p1_kilos) < minKg) {
+      return `El mínimo para ${disenos} diseño${disenos >= 2 ? "s" : ""} es ${minKg} kg. Ajusta la cantidad de kilos.`;
     }
   } else {
     if (!respuestas.p1_ancho || !respuestas.p1_alto) {
