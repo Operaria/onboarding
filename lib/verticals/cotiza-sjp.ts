@@ -32,6 +32,31 @@ const OPCIONES_TIPO = [
   "Film",
 ];
 
+// ── Catálogos espejo del cotizador (cotizador-sjp.vercel.app) ──
+// Mismos sustratos, estructuras y accesorios que usa Cinthia para cotizar,
+// para que el dato del cliente entre estructurado y sin vacíos.
+
+// 29 sustratos en el mismo orden del cotizador (SUSTRATOS de index.html).
+const OPCIONES_MATERIAL = [
+  "Bopp Matte 17", "Bopp Metaliz. 15", "Bopp Metaliz. 17", "Bopp Metaliz. 20",
+  "Bopp Perlesc. 20", "Pet Metaliz. 12", "Pet Matte 12", "Pet Brill. 12",
+  "Pe Transp. 30", "Pe Transp. 40", "Pe Bco 40", "Pe Transp. 60", "Pe Bco 60",
+  "Pe Transp. 80", "Pe Bco 80", "Pe Transp. 100", "Pe Bco 100", "Pe Bco 160",
+  "Bopp Brill. 20", "Bopp Matte 20", "Bopp Perlesc. 25", "Bopp Cpp SL 30",
+  "Bopp Metaliz. 25", "Bopp Cpp SL 40", "Bopp Cpp SL 80", "NK Transp. 23",
+  "NK Metaliz. 23", "Biopbs Transp. 51", "Pe Bco 140",
+];
+
+// Estructura define cuántas capas de material lleva la bolsa.
+const OPCIONES_ESTRUCTURA = ["Monolámina", "Bilámina", "Trilámina"];
+
+// Procesos / accesorios (checkboxes del cotizador). El zipper vive acá.
+const OPCIONES_ACCESORIOS = [
+  "Perforación circular",
+  "Válvula desgasificadora",
+  "Zipper / cierre resellable",
+];
+
 export const cotizaSjpBloques: Bloque[] = [
   // ────────────────────────────────────────────────────────────
   // Bloque 0 — Tus datos (cabecera, una sola vez)
@@ -57,6 +82,13 @@ export const cotizaSjpBloques: Bloque[] = [
     titulo: "Tu envase",
     subtitulo: "Cuéntanos qué necesitas. Si algún dato no lo tienes a mano, déjalo en blanco y lo conversamos.",
     preguntas: [
+      {
+        id: "p1_producto",
+        tipo: "texto",
+        label: "¿Qué vas a envasar?",
+        hint: "El producto que irá dentro del envase. Nos ayuda a recomendar la materialidad correcta.",
+        placeholder: "Ej: chupetes, snacks, café molido",
+      },
       {
         id: "p1_tipo",
         tipo: "radio",
@@ -132,21 +164,72 @@ export const cotizaSjpBloques: Bloque[] = [
         mostrarSi: { id: "p1_tipo", igual: "Film" },
       },
 
-      // — Zipper: solo bolsas —
+      // ── Materialidad estructurada (espejo del cotizador) · solo bolsas ──
+      // La estructura define cuántas capas se piden: Mono = solo impresión;
+      // Bi = impresión + sellado; Tri = impresión + intermedio + sellado.
       {
-        id: "p1_zipper",
-        tipo: "boolean",
-        label: "¿Lleva zipper (cierre resellable)?",
+        id: "p1_estructura",
+        tipo: "radio",
+        label: "Estructura del material",
+        hint: "Cuántas capas lleva la lámina. Si no la conoces, déjala en Bilámina o descríbenos tu producto y la definimos contigo.",
+        opciones: OPCIONES_ESTRUCTURA,
+        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
+      },
+      {
+        id: "p1_colores",
+        tipo: "number",
+        label: "Colores (tintas de impresión)",
+        placeholder: "Ej: 4",
+        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
+      },
+      {
+        id: "p1_mat_imp",
+        tipo: "select",
+        label: "Material de impresión (capa 1)",
+        opciones: OPCIONES_MATERIAL,
+        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
+      },
+      {
+        id: "p1_mat_med",
+        tipo: "select",
+        label: "Material intermedio (capa 2)",
+        opciones: OPCIONES_MATERIAL,
+        mostrarSi: [
+          { id: "p1_tipo", distintoDe: "Film" },
+          { id: "p1_estructura", igual: "Trilámina" },
+        ],
+      },
+      {
+        id: "p1_mat_sello",
+        tipo: "select",
+        label: "Material de sellado (última capa)",
+        opciones: OPCIONES_MATERIAL,
+        mostrarSi: [
+          { id: "p1_tipo", distintoDe: "Film" },
+          { id: "p1_estructura", distintoDe: "Monolámina" },
+        ],
+      },
+
+      // — Procesos / accesorios (checkboxes del cotizador) · solo bolsas —
+      {
+        id: "p1_accesorios",
+        tipo: "checkboxes",
+        label: "Procesos / accesorios",
+        hint: "Marca los que apliquen. El zipper (cierre resellable) va acá.",
+        opciones: OPCIONES_ACCESORIOS,
         mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
       },
 
-      // — Materialidad: la entrega el cliente —
+      // — Materialidad libre · solo Film —
+      // En el cotizador, el film no toma estos selects; su materialidad se
+      // conversa. Mantenemos un campo libre para no dejar el dato vacío.
       {
         id: "p1_material",
         tipo: "texto",
         label: "Materialidad",
         hint: "Ej: BOPP mate + PET metalizado. Si no la conoces, descríbenos tu producto y la definimos contigo.",
         placeholder: "Ej: BOPP mate 20 + PET met 12",
+        mostrarSi: { id: "p1_tipo", igual: "Film" },
       },
     ],
   },
@@ -218,6 +301,12 @@ export function cotizaSjpValidarAlEnviar(respuestas: Respuestas): string | null 
     }
     if (!respuestas.p1_envases || String(respuestas.p1_envases).trim().length < 1) {
       return "Indícanos la cantidad de envases.";
+    }
+    if (!respuestas.p1_estructura) {
+      return "Selecciona la estructura del material (Monolámina, Bilámina o Trilámina).";
+    }
+    if (!respuestas.p1_mat_imp) {
+      return "Selecciona el material de impresión.";
     }
   }
   return null;
