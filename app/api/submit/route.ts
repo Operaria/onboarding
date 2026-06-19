@@ -5,6 +5,7 @@ import { PDFDiagnostico } from "@/components/PDFDiagnostico";
 import { formatDate } from "@/lib/utils";
 import { getVertical } from "@/lib/verticals";
 import { entradaLabels, OPT_NO_TENGO_GOOGLE } from "@/lib/verticals/barber";
+import { cotizarSjp, cotizacionHtml } from "@/lib/verticals/cotiza-sjp-motor";
 import type { SubmitPayload, RespuestaValor, Bloque } from "@/lib/types";
 import React from "react";
 
@@ -122,7 +123,20 @@ export async function POST(req: NextRequest) {
         : vertical.id === "cindy"
         ? `Onboarding Cindy — ${payload.nombreFormateado}`
         : `Onboarding ${vertical.id} — ${payload.nombreFormateado}`;
-    const html = htmlBody(payload, vertical.nombreEncuesta, vertical.bloques);
+    let html = htmlBody(payload, vertical.nombreEncuesta, vertical.bloques);
+
+    // Auto-cotización: la encuesta cotiza-sjp ya trae los datos estructurados,
+    // así que corremos el motor oficial y sumamos el resultado al MISMO correo
+    // (va a revisión interna, no directo al cliente). Si el motor falla, el
+    // correo igual sale con las respuestas — no bloqueamos el submit.
+    if (vertical.id === "cotiza-sjp") {
+      try {
+        const cotizacion = await cotizarSjp(payload.respuestas);
+        html += cotizacionHtml(cotizacion);
+      } catch (e) {
+        console.error("auto-cotización cotiza-sjp falló:", e);
+      }
+    }
 
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.FROM_EMAIL || "onboarding@resend.dev";
