@@ -5,7 +5,7 @@ import { PDFDiagnostico } from "@/components/PDFDiagnostico";
 import { formatDate } from "@/lib/utils";
 import { getVertical } from "@/lib/verticals";
 import { entradaLabels, OPT_NO_TENGO_GOOGLE } from "@/lib/verticals/barber";
-import type { SubmitPayload, RespuestaValor } from "@/lib/types";
+import type { SubmitPayload, RespuestaValor, Bloque } from "@/lib/types";
 import React from "react";
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ function fmt(v: RespuestaValor | undefined): string {
   return "—";
 }
 
-function htmlBody(p: SubmitPayload, nombreEncuesta: string): string {
+function htmlBody(p: SubmitPayload, nombreEncuesta: string, bloques: Bloque[]): string {
   const r = p.respuestas;
   const entradaEnum = (r.entrada_deseada as string | undefined) ?? "";
   const entradaLabel = entradaEnum ? (entradaLabels[entradaEnum] ?? entradaEnum) : "—";
@@ -68,12 +68,17 @@ function htmlBody(p: SubmitPayload, nombreEncuesta: string): string {
         <li><strong>Materiales a recolectar:</strong> ${fmt(r.materiales)}</li>
       </ul>`;
   } else {
-    resumen = `
-      <p><strong style="color:#0F1E3A;">Nombre / cargo:</strong><br>${fmt(r.p1)}</p>
-      <p><strong style="color:#0F1E3A;">Rubro:</strong><br>${fmt(r.p2)}</p>
-      <p><strong style="color:#0F1E3A;">Dolor principal:</strong><br>${fmt(r.p6)}</p>
-      <p><strong style="color:#0F1E3A;">Nivel de impacto (1-10):</strong> ${fmt(r.p20)}</p>
-      <p><strong style="color:#0F1E3A;">Mejor forma de contacto:</strong><br>${fmt(r.p21)}</p>`;
+    // genérico (incluye cotiza-sjp): recorre TODAS las respuestas reales del formulario
+    const filas: string[] = [];
+    for (const b of bloques) {
+      for (const q of b.preguntas) {
+        const val = fmt(r[q.id]);
+        if (val !== "—") {
+          filas.push(`<p style="margin:8px 0;"><strong style="color:#0F1E3A;">${q.label ?? q.id}</strong><br>${val}</p>`);
+        }
+      }
+    }
+    resumen = filas.length ? filas.join("") : `<p style="color:#9E9C96;">(sin respuestas registradas)</p>`;
   }
 
   return `
@@ -117,7 +122,7 @@ export async function POST(req: NextRequest) {
         : vertical.id === "cindy"
         ? `Onboarding Cindy — ${payload.nombreFormateado}`
         : `Onboarding ${vertical.id} — ${payload.nombreFormateado}`;
-    const html = htmlBody(payload, vertical.nombreEncuesta);
+    const html = htmlBody(payload, vertical.nombreEncuesta, vertical.bloques);
 
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.FROM_EMAIL || "onboarding@resend.dev";
