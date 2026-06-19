@@ -1,4 +1,4 @@
-import type { Bloque, Respuestas } from "../types";
+import type { Bloque, Pregunta, MostrarSi, Respuestas } from "../types";
 
 /**
  * Formulario · Cotización San Jorge Packaging (clientes finales)
@@ -19,8 +19,12 @@ import type { Bloque, Respuestas } from "../types";
  *  - MÍNIMOS por n° de diseños (reunión 15 jun): Film → 1 diseño = 10 kg, multidiseño
  *    = 5 kg por diseño (12 diseños ⇒ 60 kg). Pouch/Doypack → 1 diseño = 1.000 u,
  *    multidiseño = 300 u por tipo. El formulario los informa y valida el de film.
- *  - No se piden colores (Cinthia pide "cantidad de diseños"); el motor asume su
- *    estándar y SJP ajusta colores al definir el arte.
+ *  - COLORES (reunión 16 jun): no se piden. La impresión es digital, siempre 4 colores
+ *    (CMYK) + blanco. El cliente no elige tintas; el motor asume el estándar.
+ *  - MULTIPRODUCTO (reunión 16 jun): el cliente puede cotizar varios envases en una
+ *    misma solicitud (tipo carrito). Cada producto adicional reabre el MISMO formulario
+ *    completo (medidas, estructura, capas, accesorios), no una tabla reducida —
+ *    así un producto extra queda tan especificado como el primero. Todo sube junto.
  *  - Nombre + RUT: sobre todo para clientes nuevos.
  *
  * Tono: español de Chile, cercano y profesional (tú). Sin emojis.
@@ -51,11 +55,213 @@ const OPCIONES_MATERIAL = [
 const OPCIONES_ESTRUCTURA = ["Monolámina", "Bilámina", "Trilámina"];
 
 // Procesos / accesorios (checkboxes del cotizador). El zipper vive acá.
+// "Perforación sombrero" agregada en reunión 16 jun (junto a la circular).
 const OPCIONES_ACCESORIOS = [
   "Perforación circular",
+  "Perforación sombrero",
   "Válvula desgasificadora",
   "Zipper / cierre resellable",
 ];
+
+// Cuántos productos puede cotizar el cliente en una misma solicitud.
+// Si necesita más, lo conversa con SJP (caso poco común).
+const MAX_PRODUCTOS = 5;
+
+/**
+ * Combina el "candado" del producto n (visible solo si se pidió agregar el
+ * producto anterior) con las condiciones propias de la pregunta. El producto 1
+ * no tiene candado: siempre se muestra.
+ */
+function gate(n: number, extra?: MostrarSi | MostrarSi[]): MostrarSi | MostrarSi[] | undefined {
+  const base: MostrarSi[] = n > 1 ? [{ id: `add_${n - 1}`, igual: true }] : [];
+  const ex = extra ? (Array.isArray(extra) ? extra : [extra]) : [];
+  const all = [...base, ...ex];
+  if (all.length === 0) return undefined;
+  if (all.length === 1) return all[0];
+  return all;
+}
+
+/**
+ * Todos los campos de UN envase, con ids prefijados `prodN_` para que cada
+ * producto guarde su propia respuesta. Es el mismo formulario del producto 1,
+ * repetido — la pieza que pidió Cinthia para el "carrito".
+ */
+function camposProducto(n: number): Pregunta[] {
+  const P = `prod${n}_`;
+  const et = n === 1 ? "" : `Producto ${n} — `;
+  return [
+    {
+      id: `${P}producto`,
+      tipo: "texto",
+      label: `${et}¿Qué vas a envasar?`,
+      hint: "El producto que irá dentro del envase. Nos ayuda a recomendar la materialidad correcta.",
+      placeholder: "Ej: chupetes, snacks, café molido",
+      mostrarSi: gate(n),
+    },
+    {
+      id: `${P}tipo`,
+      tipo: "radio",
+      label: `${et}¿Qué tipo de envase necesitas?`,
+      opciones: OPCIONES_TIPO,
+      mostrarSi: gate(n),
+    },
+
+    // — Doypack / Pouche: ancho × alto —
+    {
+      id: `${P}ancho`,
+      tipo: "number",
+      label: "Ancho (mm)",
+      placeholder: "Ej: 130",
+      mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
+    },
+    {
+      id: `${P}alto`,
+      tipo: "number",
+      label: "Alto (mm)",
+      placeholder: "Ej: 220",
+      mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
+    },
+    {
+      id: `${P}fuelle`,
+      tipo: "number",
+      label: "Fuelle (mm)",
+      hint: "El fondo que permite que la bolsa se pare.",
+      placeholder: "Ej: 40",
+      mostrarSi: gate(n, { id: `${P}tipo`, igual: "Doypack" }),
+    },
+
+    // — Film: SOLO dos medidas (largo × alto, donde alto = paso de taca) —
+    {
+      id: `${P}film_largo`,
+      tipo: "number",
+      label: "Largo (ancho) — mm",
+      placeholder: "Ej: 208",
+      mostrarSi: gate(n, { id: `${P}tipo`, igual: "Film" }),
+    },
+    {
+      id: `${P}film_alto`,
+      tipo: "number",
+      label: "Paso de taca (alto) — mm",
+      hint: "En el film, el alto es el paso de taca: el largo de cada repetición del diseño en la bobina. Son la misma medida.",
+      placeholder: "Ej: 130",
+      mostrarSi: gate(n, { id: `${P}tipo`, igual: "Film" }),
+    },
+
+    // — Común a todos —
+    {
+      id: `${P}disenos`,
+      tipo: "number",
+      label: "Cantidad de diseños",
+      hint: "Cuántas artes distintas (ej: 3 sabores = 3 diseños). Define el mínimo a producir: en film, 1 diseño = 10 kg y desde 2 diseños son 5 kg por diseño; en bolsas, 1 diseño = 1.000 unidades y desde 2 son 300 por diseño.",
+      placeholder: "Ej: 1",
+      mostrarSi: gate(n),
+    },
+
+    // — Cantidad: envases (no Film) o kilos (Film) —
+    {
+      id: `${P}envases`,
+      tipo: "texto",
+      label: "Cantidad de envases",
+      hint: "Mínimo 1.000 unidades (o 300 por diseño si tienes más de uno). Puedes indicar más de una cantidad (separadas por coma) para comparar precio por volumen.",
+      placeholder: "Ej: 5.000 y 10.000",
+      mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
+    },
+    {
+      id: `${P}kilos`,
+      tipo: "number",
+      label: "Cantidad de kilos",
+      hint: "Mínimo 10 kg con un diseño; 5 kg por diseño si tienes más de uno.",
+      placeholder: "Ej: 60",
+      mostrarSi: gate(n, { id: `${P}tipo`, igual: "Film" }),
+    },
+
+    // ── Materialidad estructurada (espejo del cotizador) · solo bolsas ──
+    // La estructura define cuántas capas se piden: Mono = solo impresión;
+    // Bi = impresión + sellado; Tri = impresión + intermedio + sellado.
+    {
+      id: `${P}estructura`,
+      tipo: "radio",
+      label: "Estructura del material",
+      hint: "Cuántas capas lleva la lámina. Si no la conoces, déjala en Bilámina o descríbenos tu producto y la definimos contigo. La impresión es digital: siempre 4 colores (CMYK) más blanco, no necesitas elegir tintas.",
+      opciones: OPCIONES_ESTRUCTURA,
+      mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
+    },
+    {
+      id: `${P}mat_imp`,
+      tipo: "select",
+      label: "Material de impresión (capa 1)",
+      opciones: OPCIONES_MATERIAL,
+      mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
+    },
+    {
+      id: `${P}mat_med`,
+      tipo: "select",
+      label: "Material intermedio (capa 2)",
+      opciones: OPCIONES_MATERIAL,
+      mostrarSi: gate(n, [
+        { id: `${P}tipo`, distintoDe: "Film" },
+        { id: `${P}estructura`, igual: "Trilámina" },
+      ]),
+    },
+    {
+      id: `${P}mat_sello`,
+      tipo: "select",
+      label: "Material de sellado (última capa)",
+      opciones: OPCIONES_MATERIAL,
+      mostrarSi: gate(n, [
+        { id: `${P}tipo`, distintoDe: "Film" },
+        { id: `${P}estructura`, distintoDe: "Monolámina" },
+      ]),
+    },
+
+    // — Procesos / accesorios (checkboxes del cotizador) · solo bolsas —
+    {
+      id: `${P}accesorios`,
+      tipo: "checkboxes",
+      label: "Procesos / accesorios",
+      hint: "Marca los que apliquen. El zipper (cierre resellable) va acá.",
+      opciones: OPCIONES_ACCESORIOS,
+      mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
+    },
+
+    // — Materialidad libre · solo Film —
+    // En el cotizador, el film no toma estos selects; su materialidad se
+    // conversa. Mantenemos un campo libre para no dejar el dato vacío.
+    {
+      id: `${P}material`,
+      tipo: "texto",
+      label: "Materialidad",
+      hint: "Ej: BOPP mate + PET metalizado. Si no la conoces, descríbenos tu producto y la definimos contigo.",
+      placeholder: "Ej: BOPP mate 20 + PET met 12",
+      mostrarSi: gate(n, { id: `${P}tipo`, igual: "Film" }),
+    },
+  ];
+}
+
+/**
+ * Interruptor "agregar otro producto". Aparece al final de cada producto activo
+ * y, al marcarlo, abre el formulario completo del siguiente. El del producto 1
+ * siempre está visible; los siguientes solo si el anterior se activó.
+ */
+function preguntaAgregar(n: number): Pregunta {
+  return {
+    id: `add_${n}`,
+    tipo: "boolean",
+    label:
+      n === 1
+        ? "¿Quieres cotizar otro producto?"
+        : "¿Quieres agregar otro producto más?",
+    hint: "Se incluye en la misma solicitud. Puede tener otra medida, materialidad o tipo de envase.",
+    mostrarSi: n === 1 ? undefined : { id: `add_${n - 1}`, igual: true },
+  };
+}
+
+// Producto 1 + interruptor + producto 2 + interruptor + ... (hasta MAX_PRODUCTOS).
+const preguntasEnvase: Pregunta[] = [];
+for (let n = 1; n <= MAX_PRODUCTOS; n++) {
+  preguntasEnvase.push(...camposProducto(n));
+  if (n < MAX_PRODUCTOS) preguntasEnvase.push(preguntaAgregar(n));
+}
 
 export const cotizaSjpBloques: Bloque[] = [
   // ────────────────────────────────────────────────────────────
@@ -75,202 +281,60 @@ export const cotizaSjpBloques: Bloque[] = [
   },
 
   // ────────────────────────────────────────────────────────────
-  // Bloque 1 — Tu producto (campos según tipo, definidos por Cinthia)
+  // Bloque 1 — Tu envase (uno o varios productos, mismo formulario)
   // ────────────────────────────────────────────────────────────
   {
     id: 1,
     titulo: "Tu envase",
-    subtitulo: "Cuéntanos qué necesitas. Si algún dato no lo tienes a mano, déjalo en blanco y lo conversamos.",
-    preguntas: [
-      {
-        id: "p1_producto",
-        tipo: "texto",
-        label: "¿Qué vas a envasar?",
-        hint: "El producto que irá dentro del envase. Nos ayuda a recomendar la materialidad correcta.",
-        placeholder: "Ej: chupetes, snacks, café molido",
-      },
-      {
-        id: "p1_tipo",
-        tipo: "radio",
-        label: "¿Qué tipo de envase necesitas?",
-        opciones: OPCIONES_TIPO,
-      },
-
-      // — Doypack / Pouche: ancho × alto —
-      {
-        id: "p1_ancho",
-        tipo: "number",
-        label: "Ancho (mm)",
-        placeholder: "Ej: 130",
-        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
-      },
-      {
-        id: "p1_alto",
-        tipo: "number",
-        label: "Alto (mm)",
-        placeholder: "Ej: 220",
-        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
-      },
-      {
-        id: "p1_fuelle",
-        tipo: "number",
-        label: "Fuelle (mm)",
-        hint: "El fondo que permite que la bolsa se pare.",
-        placeholder: "Ej: 40",
-        mostrarSi: { id: "p1_tipo", igual: "Doypack" },
-      },
-
-      // — Film: SOLO dos medidas (largo × alto, donde alto = paso de taca) —
-      {
-        id: "p1_film_largo",
-        tipo: "number",
-        label: "Largo (ancho) — mm",
-        placeholder: "Ej: 208",
-        mostrarSi: { id: "p1_tipo", igual: "Film" },
-      },
-      {
-        id: "p1_film_alto",
-        tipo: "number",
-        label: "Paso de taca (alto) — mm",
-        hint: "En el film, el alto es el paso de taca: el largo de cada repetición del diseño en la bobina. Son la misma medida.",
-        placeholder: "Ej: 130",
-        mostrarSi: { id: "p1_tipo", igual: "Film" },
-      },
-
-      // — Común a todos —
-      {
-        id: "p1_disenos",
-        tipo: "number",
-        label: "Cantidad de diseños",
-        hint: "Cuántas artes distintas (ej: 3 sabores = 3 diseños). Define el mínimo a producir: en film, 1 diseño = 10 kg y desde 2 diseños son 5 kg por diseño; en bolsas, 1 diseño = 1.000 unidades y desde 2 son 300 por diseño.",
-        placeholder: "Ej: 1",
-      },
-
-      // — Cantidad: envases (no Film) o kilos (Film) —
-      {
-        id: "p1_envases",
-        tipo: "texto",
-        label: "Cantidad de envases",
-        hint: "Mínimo 1.000 unidades (o 300 por diseño si tienes más de uno). Puedes indicar más de una cantidad (separadas por coma) para comparar precio por volumen.",
-        placeholder: "Ej: 5.000 y 10.000",
-        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
-      },
-      {
-        id: "p1_kilos",
-        tipo: "number",
-        label: "Cantidad de kilos",
-        hint: "Mínimo 10 kg con un diseño; 5 kg por diseño si tienes más de uno.",
-        placeholder: "Ej: 60",
-        mostrarSi: { id: "p1_tipo", igual: "Film" },
-      },
-
-      // ── Materialidad estructurada (espejo del cotizador) · solo bolsas ──
-      // La estructura define cuántas capas se piden: Mono = solo impresión;
-      // Bi = impresión + sellado; Tri = impresión + intermedio + sellado.
-      {
-        id: "p1_estructura",
-        tipo: "radio",
-        label: "Estructura del material",
-        hint: "Cuántas capas lleva la lámina. Si no la conoces, déjala en Bilámina o descríbenos tu producto y la definimos contigo.",
-        opciones: OPCIONES_ESTRUCTURA,
-        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
-      },
-      {
-        id: "p1_colores",
-        tipo: "number",
-        label: "Colores (tintas de impresión)",
-        placeholder: "Ej: 4",
-        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
-      },
-      {
-        id: "p1_mat_imp",
-        tipo: "select",
-        label: "Material de impresión (capa 1)",
-        opciones: OPCIONES_MATERIAL,
-        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
-      },
-      {
-        id: "p1_mat_med",
-        tipo: "select",
-        label: "Material intermedio (capa 2)",
-        opciones: OPCIONES_MATERIAL,
-        mostrarSi: [
-          { id: "p1_tipo", distintoDe: "Film" },
-          { id: "p1_estructura", igual: "Trilámina" },
-        ],
-      },
-      {
-        id: "p1_mat_sello",
-        tipo: "select",
-        label: "Material de sellado (última capa)",
-        opciones: OPCIONES_MATERIAL,
-        mostrarSi: [
-          { id: "p1_tipo", distintoDe: "Film" },
-          { id: "p1_estructura", distintoDe: "Monolámina" },
-        ],
-      },
-
-      // — Procesos / accesorios (checkboxes del cotizador) · solo bolsas —
-      {
-        id: "p1_accesorios",
-        tipo: "checkboxes",
-        label: "Procesos / accesorios",
-        hint: "Marca los que apliquen. El zipper (cierre resellable) va acá.",
-        opciones: OPCIONES_ACCESORIOS,
-        mostrarSi: { id: "p1_tipo", distintoDe: "Film" },
-      },
-
-      // — Materialidad libre · solo Film —
-      // En el cotizador, el film no toma estos selects; su materialidad se
-      // conversa. Mantenemos un campo libre para no dejar el dato vacío.
-      {
-        id: "p1_material",
-        tipo: "texto",
-        label: "Materialidad",
-        hint: "Ej: BOPP mate + PET metalizado. Si no la conoces, descríbenos tu producto y la definimos contigo.",
-        placeholder: "Ej: BOPP mate 20 + PET met 12",
-        mostrarSi: { id: "p1_tipo", igual: "Film" },
-      },
-    ],
-  },
-
-  // ────────────────────────────────────────────────────────────
-  // Bloque 2 — ¿Más de un producto?
-  // ────────────────────────────────────────────────────────────
-  {
-    id: 2,
-    titulo: "¿Necesitas cotizar más productos?",
-    subtitulo: "Si es solo uno, puedes enviar directamente.",
-    preguntas: [
-      {
-        id: "mas_productos",
-        tipo: "boolean",
-        label: "Quiero cotizar más de un producto",
-      },
-      {
-        id: "productos_extra",
-        tipo: "tabla",
-        label: "Productos adicionales",
-        hint: "Una fila por envase. En Film, usa la columna cantidad para los kilos. Deja en blanco lo que no aplique.",
-        mostrarSi: { id: "mas_productos", igual: true },
-        columnas: [
-          { key: "tipo", label: "Tipo", tipo: "select", opciones: OPCIONES_TIPO, width: "16%" },
-          { key: "ancho", label: "Ancho/Largo mm", tipo: "number", placeholder: "130", width: "13%" },
-          { key: "alto", label: "Alto mm", tipo: "number", placeholder: "220", width: "11%" },
-          { key: "fuelle", label: "Fuelle/Paso mm", tipo: "number", placeholder: "40", width: "12%" },
-          { key: "disenos", label: "Diseños", tipo: "number", placeholder: "1", width: "9%" },
-          { key: "cantidad", label: "Envases o kilos", tipo: "texto", placeholder: "5.000", width: "15%" },
-          { key: "material", label: "Materialidad", tipo: "texto", placeholder: "BOPP mate + PET", width: "24%" },
-        ],
-        filaInicial: { tipo: "", ancho: "", alto: "", fuelle: "", disenos: "", cantidad: "", material: "" },
-      },
-    ],
+    subtitulo: "Cuéntanos qué necesitas. Si algún dato no lo tienes a mano, déjalo en blanco y lo conversamos. Si necesitas cotizar más de un envase, al final puedes agregar otro.",
+    preguntas: preguntasEnvase,
   },
 ];
 
 /**
- * Validación al enviar. Exige identidad del cliente + tipo + medidas + cantidad
- * del primer producto (según sea bolsa o film). El resto se conversa.
+ * Valida UN producto activo. Exige tipo + medidas + cantidad (y, en bolsas,
+ * estructura + material de impresión). El prefijo del mensaje ubica al cliente
+ * cuando hay más de un producto.
+ */
+function validarProducto(r: Respuestas, n: number): string | null {
+  const P = `prod${n}_`;
+  const et = n === 1 ? "" : `Producto ${n}: `;
+  const tipo = r[`${P}tipo`];
+  if (!tipo) {
+    return `${et}selecciona qué tipo de envase necesitas.`;
+  }
+  if (tipo === "Film") {
+    if (!r[`${P}film_largo`] || !r[`${P}film_alto`]) {
+      return `${et}indícanos el largo y el alto (paso de taca) del film en milímetros.`;
+    }
+    if (!r[`${P}kilos`]) {
+      return `${et}indícanos la cantidad de kilos.`;
+    }
+    const disenos = Number(r[`${P}disenos`]) || 1;
+    const minKg = disenos >= 2 ? 5 * disenos : 10;
+    if (Number(r[`${P}kilos`]) < minKg) {
+      return `${et}el mínimo para ${disenos} diseño${disenos >= 2 ? "s" : ""} es ${minKg} kg. Ajusta la cantidad de kilos.`;
+    }
+  } else {
+    if (!r[`${P}ancho`] || !r[`${P}alto`]) {
+      return `${et}indícanos el ancho y el alto del envase en milímetros.`;
+    }
+    if (!r[`${P}envases`] || String(r[`${P}envases`]).trim().length < 1) {
+      return `${et}indícanos la cantidad de envases.`;
+    }
+    if (!r[`${P}estructura`]) {
+      return `${et}selecciona la estructura del material (Monolámina, Bilámina o Trilámina).`;
+    }
+    if (!r[`${P}mat_imp`]) {
+      return `${et}selecciona el material de impresión.`;
+    }
+  }
+  return null;
+}
+
+/**
+ * Validación al enviar. Exige identidad del cliente y, por cada producto activo
+ * (encadenado por los interruptores "agregar otro"), sus datos mínimos.
  */
 export function cotizaSjpValidarAlEnviar(respuestas: Respuestas): string | null {
   if (!respuestas.cli_razon || String(respuestas.cli_razon).trim().length < 2) {
@@ -279,35 +343,11 @@ export function cotizaSjpValidarAlEnviar(respuestas: Respuestas): string | null 
   if (!respuestas.cli_email || !String(respuestas.cli_email).includes("@")) {
     return "Indícanos un correo válido para enviarte la cotización.";
   }
-  if (!respuestas.p1_tipo) {
-    return "Selecciona qué tipo de envase necesitas.";
-  }
-  const esFilm = respuestas.p1_tipo === "Film";
-  if (esFilm) {
-    if (!respuestas.p1_film_largo || !respuestas.p1_film_alto) {
-      return "Indícanos el largo y el alto (paso de taca) del film en milímetros.";
-    }
-    if (!respuestas.p1_kilos) {
-      return "Indícanos la cantidad de kilos.";
-    }
-    const disenos = Number(respuestas.p1_disenos) || 1;
-    const minKg = disenos >= 2 ? 5 * disenos : 10;
-    if (Number(respuestas.p1_kilos) < minKg) {
-      return `El mínimo para ${disenos} diseño${disenos >= 2 ? "s" : ""} es ${minKg} kg. Ajusta la cantidad de kilos.`;
-    }
-  } else {
-    if (!respuestas.p1_ancho || !respuestas.p1_alto) {
-      return "Indícanos el ancho y el alto de tu envase en milímetros.";
-    }
-    if (!respuestas.p1_envases || String(respuestas.p1_envases).trim().length < 1) {
-      return "Indícanos la cantidad de envases.";
-    }
-    if (!respuestas.p1_estructura) {
-      return "Selecciona la estructura del material (Monolámina, Bilámina o Trilámina).";
-    }
-    if (!respuestas.p1_mat_imp) {
-      return "Selecciona el material de impresión.";
-    }
+  for (let n = 1; n <= MAX_PRODUCTOS; n++) {
+    const activo = n === 1 || respuestas[`add_${n - 1}`] === true;
+    if (!activo) break; // los productos se activan en cadena; al primer inactivo, paramos.
+    const msg = validarProducto(respuestas, n);
+    if (msg) return msg;
   }
   return null;
 }
