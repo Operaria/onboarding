@@ -60,6 +60,8 @@ const OPCIONES_ACCESORIOS = [
   "Perforación circular",
   "Perforación sombrero",
   "Válvula desgasificadora",
+  "Válvula corner",
+  "Válvula frontal",
   "Zipper / cierre resellable",
 ];
 
@@ -166,13 +168,38 @@ function camposProducto(n: number): Pregunta[] {
       placeholder: "Ej: 5.000 y 10.000",
       mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
     },
+    // Film: el cliente elige indicar la cantidad en kilos (natural de la bobina)
+    // o en unidades (envases). El motor convierte con el peso por unidad y la
+    // cotización informa los dos + precio/kilo y precio/unitario.
+    {
+      id: `${P}film_modo_cant`,
+      tipo: "radio",
+      label: "¿Cómo prefieres indicar la cantidad?",
+      hint: "En film cobramos por kilo, pero si te acomoda pensar en envases puedes indicar unidades y te mostramos ambos.",
+      opciones: ["Kilos", "Unidades"],
+      mostrarSi: gate(n, { id: `${P}tipo`, igual: "Film" }),
+    },
     {
       id: `${P}kilos`,
       tipo: "number",
       label: "Cantidad de kilos",
       hint: "Mínimo 10 kg con un diseño; 5 kg por diseño si tienes más de uno.",
       placeholder: "Ej: 60",
-      mostrarSi: gate(n, { id: `${P}tipo`, igual: "Film" }),
+      mostrarSi: gate(n, [
+        { id: `${P}tipo`, igual: "Film" },
+        { id: `${P}film_modo_cant`, igual: "Kilos" },
+      ]),
+    },
+    {
+      id: `${P}film_unidades`,
+      tipo: "number",
+      label: "Cantidad de unidades (envases)",
+      hint: "Las convertimos a kilos con el peso de cada envase para cotizar.",
+      placeholder: "Ej: 12.000",
+      mostrarSi: gate(n, [
+        { id: `${P}tipo`, igual: "Film" },
+        { id: `${P}film_modo_cant`, igual: "Unidades" },
+      ]),
     },
 
     // ── Materialidad estructurada (espejo del cotizador) · solo bolsas ──
@@ -184,34 +211,28 @@ function camposProducto(n: number): Pregunta[] {
       label: "Estructura del material",
       hint: "Cuántas capas lleva la lámina. Si no la conoces, déjala en Bilámina o descríbenos tu producto y la definimos contigo. La impresión es digital: siempre 4 colores (CMYK) más blanco, no necesitas elegir tintas.",
       opciones: OPCIONES_ESTRUCTURA,
-      mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
+      mostrarSi: gate(n),
     },
     {
       id: `${P}mat_imp`,
       tipo: "select",
       label: "Material de impresión (capa 1)",
       opciones: OPCIONES_MATERIAL,
-      mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
+      mostrarSi: gate(n),
     },
     {
       id: `${P}mat_med`,
       tipo: "select",
       label: "Material intermedio (capa 2)",
       opciones: OPCIONES_MATERIAL,
-      mostrarSi: gate(n, [
-        { id: `${P}tipo`, distintoDe: "Film" },
-        { id: `${P}estructura`, igual: "Trilámina" },
-      ]),
+      mostrarSi: gate(n, { id: `${P}estructura`, igual: "Trilámina" }),
     },
     {
       id: `${P}mat_sello`,
       tipo: "select",
       label: "Material de sellado (última capa)",
       opciones: OPCIONES_MATERIAL,
-      mostrarSi: gate(n, [
-        { id: `${P}tipo`, distintoDe: "Film" },
-        { id: `${P}estructura`, distintoDe: "Monolámina" },
-      ]),
+      mostrarSi: gate(n, { id: `${P}estructura`, distintoDe: "Monolámina" }),
     },
 
     // — Procesos / accesorios (checkboxes del cotizador) · solo bolsas —
@@ -224,17 +245,6 @@ function camposProducto(n: number): Pregunta[] {
       mostrarSi: gate(n, { id: `${P}tipo`, distintoDe: "Film" }),
     },
 
-    // — Materialidad libre · solo Film —
-    // En el cotizador, el film no toma estos selects; su materialidad se
-    // conversa. Mantenemos un campo libre para no dejar el dato vacío.
-    {
-      id: `${P}material`,
-      tipo: "texto",
-      label: "Materialidad",
-      hint: "Ej: BOPP mate + PET metalizado. Si no la conoces, descríbenos tu producto y la definimos contigo.",
-      placeholder: "Ej: BOPP mate 20 + PET met 12",
-      mostrarSi: gate(n, { id: `${P}tipo`, igual: "Film" }),
-    },
   ];
 }
 
@@ -307,13 +317,20 @@ function validarProducto(r: Respuestas, n: number): string | null {
     if (!r[`${P}film_largo`] || !r[`${P}film_alto`]) {
       return `${et}indícanos el largo y el alto (paso de taca) del film en milímetros.`;
     }
-    if (!r[`${P}kilos`]) {
-      return `${et}indícanos la cantidad de kilos.`;
-    }
-    const disenos = Number(r[`${P}disenos`]) || 1;
-    const minKg = disenos >= 2 ? 5 * disenos : 10;
-    if (Number(r[`${P}kilos`]) < minKg) {
-      return `${et}el mínimo para ${disenos} diseño${disenos >= 2 ? "s" : ""} es ${minKg} kg. Ajusta la cantidad de kilos.`;
+    const modoCant = r[`${P}film_modo_cant`] || "Kilos";
+    if (modoCant === "Unidades") {
+      if (!r[`${P}film_unidades`]) {
+        return `${et}indícanos la cantidad de unidades (envases).`;
+      }
+    } else {
+      if (!r[`${P}kilos`]) {
+        return `${et}indícanos la cantidad de kilos.`;
+      }
+      const disenos = Number(r[`${P}disenos`]) || 1;
+      const minKg = disenos >= 2 ? 5 * disenos : 10;
+      if (Number(r[`${P}kilos`]) < minKg) {
+        return `${et}el mínimo para ${disenos} diseño${disenos >= 2 ? "s" : ""} es ${minKg} kg. Ajusta la cantidad de kilos.`;
+      }
     }
   } else {
     if (!r[`${P}ancho`] || !r[`${P}alto`]) {

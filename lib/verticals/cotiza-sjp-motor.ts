@@ -29,6 +29,10 @@ type Tramo = {
   total_neto: number;
   total_iva: number;
   bajo_minimo: boolean;
+  // Film: el motor devuelve los dos lados de la conversión + precio/kilo.
+  precio_kilo?: number;
+  kilos?: number;
+  unidades_aprox?: number;
   error?: string;
 };
 
@@ -72,17 +76,29 @@ function queriesProducto(r: Respuestas, n: number): { tipo: string; preliminar: 
   if (!tipoRaw) return null;
 
   if (tipoRaw === "Film") {
-    const kg = Number(r[`${P}kilos`]) || 0;
-    if (!kg) return { tipo: "Film", preliminar: false, queries: [] };
-    const q = new URLSearchParams({
+    const estructura = ESTRUCTURA_ID[String(r[`${P}estructura`] || "Bilámina")] || "2";
+    const base: Record<string, string> = {
       tipo: "film",
       alto: num(r[`${P}film_alto`]), // alto = paso de taca
       paso: num(r[`${P}film_largo`]), // paso = largo (ancho)
       colores: "4",
       n_disenos: num(r[`${P}disenos`]) || "1",
-      kg: String(kg),
+      estructura,
       modo: "real",
-    });
+    };
+    if (r[`${P}mat_imp`]) base.material_imp = String(r[`${P}mat_imp`]);
+    if (r[`${P}mat_med`]) base.material_med = String(r[`${P}mat_med`]);
+    if (r[`${P}mat_sello`]) base.material_sello = String(r[`${P}mat_sello`]);
+    // El cliente indicó la cantidad en kilos o en unidades.
+    if (String(r[`${P}film_modo_cant`] || "Kilos") === "Unidades") {
+      const u = Number(r[`${P}film_unidades`]) || 0;
+      if (!u) return { tipo: "Film", preliminar: false, queries: [] };
+      const q = new URLSearchParams({ ...base, unidades: String(u) });
+      return { tipo: "Film", preliminar: false, queries: [{ cantidad: u, unidad: "u", qs: q.toString() }] };
+    }
+    const kg = Number(r[`${P}kilos`]) || 0;
+    if (!kg) return { tipo: "Film", preliminar: false, queries: [] };
+    const q = new URLSearchParams({ ...base, kg: String(kg) });
     return { tipo: "Film", preliminar: false, queries: [{ cantidad: kg, unidad: "kg", qs: q.toString() }] };
   }
 
@@ -103,7 +119,10 @@ function queriesProducto(r: Respuestas, n: number): { tipo: string; preliminar: 
   if (r[`${P}mat_med`]) base.material_med = String(r[`${P}mat_med`]);
   if (r[`${P}mat_sello`]) base.material_sello = String(r[`${P}mat_sello`]);
   if (tieneAccesorio(accesorios, "Zipper")) base.zipper = "1";
-  if (tieneAccesorio(accesorios, "Válvula")) base.valvula = "1";
+  if (tieneAccesorio(accesorios, "Válvula corner")) base.valvula_corner = "1";
+  if (tieneAccesorio(accesorios, "Válvula frontal")) base.valvula_frontal = "1";
+  // "Válvula desgasificadora" (no corner/frontal) -> válvula clásica por metro.
+  if (tieneAccesorio(accesorios, "Válvula desgasificadora")) base.valvula = "1";
   if (tieneAccesorio(accesorios, "Perforación")) base.perforacion = "1";
 
   const queries = (cantidades.length ? cantidades : [0]).map((cantidad) => {
@@ -156,6 +175,9 @@ export async function cotizarSjp(r: Respuestas): Promise<CotizacionProducto[]> {
         total_neto: Number(d.venta_neto) || 0,
         total_iva: Number(d.venta_iva) || 0,
         bajo_minimo: Boolean(d.bajo_minimo),
+        precio_kilo: d.precio_kilo != null ? Number(d.precio_kilo) : undefined,
+        kilos: d.kilos != null ? Number(d.kilos) : undefined,
+        unidades_aprox: d.unidades != null ? Number(d.unidades) : undefined,
       });
     }
     out.push({ etiqueta, tipo: plan.tipo, preliminar: plan.preliminar, tramos });
@@ -175,6 +197,21 @@ export function cotizacionHtml(productos: CotizacionProducto[]): string {
           if (t.error) {
             return `<tr><td colspan="3" style="padding:6px 8px;color:#B23A48;font-size:13px;">
               ${t.cantidad ? `${t.cantidad.toLocaleString("es-CL")} ${t.unidad} — ` : ""}sin precio: ${t.error}</td></tr>`;
+          }
+          // Film: se cobra por kilo. Mostramos los dos lados (kilos ↔ unidades
+          // aprox), el precio/kilo y el precio/unidad.
+          if (p.tipo === "Film" && t.precio_kilo != null) {
+            const kilos = t.kilos != null
+              ? (Math.round(t.kilos * 10) / 10).toLocaleString("es-CL")
+              : (t.unidad === "kg" ? t.cantidad.toLocaleString("es-CL") : "—");
+            const uaprox = t.unidades_aprox != null
+              ? Math.round(t.unidades_aprox).toLocaleString("es-CL")
+              : "—";
+            return `<tr>
+              <td style="padding:6px 8px;font-size:13px;">${kilos} kg ≈ ${uaprox} u${t.bajo_minimo ? " <span style='color:#E8A838;'>(bajo mínimo)</span>" : ""}</td>
+              <td style="padding:6px 8px;font-size:13px;text-align:right;">${clp(t.precio_kilo)} <span style="color:#9E9C96;">/kg</span> · ${clp(t.unitario_neto)} <span style="color:#9E9C96;">c/u</span></td>
+              <td style="padding:6px 8px;font-size:13px;text-align:right;font-weight:600;">${clp(t.total_neto)} <span style="color:#9E9C96;font-weight:400;">+IVA ${clp(t.total_iva)}</span></td>
+            </tr>`;
           }
           return `<tr>
             <td style="padding:6px 8px;font-size:13px;">${t.cantidad.toLocaleString("es-CL")} ${t.unidad}${t.bajo_minimo ? " <span style='color:#E8A838;'>(bajo mínimo)</span>" : ""}</td>
