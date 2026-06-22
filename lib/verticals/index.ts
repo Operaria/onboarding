@@ -89,9 +89,10 @@ export const verticals: Record<string, Vertical> = {
     bloques: cotizaSjpBloques,
     validarAlEnviar: cotizaSjpValidarAlEnviar,
     marca: "San Jorge Packaging",
-    // Destino definitivo. Requiere que Up verifique el dominio operaria.cl en
-    // Resend + setee FROM_EMAIL del dominio verificado (ver SOLICITUD-UP-resend.md).
-    destino: "francisco@operaria.cl",
+    // Destino definitivo: casilla de cotizaciones de San Jorge Packaging.
+    // (Estuvo apuntando a francisco@operaria.cl durante las pruebas — 22-jun se
+    // devolvió a SJP. Dominio operaria.cl verificado en Resend, FROM ok.)
+    destino: "sjpcotizaciones@gmail.com",
     tagline: "Cotiza tu envase",
     subtitulo: "Cuéntanos qué necesitas y te preparamos una cotización a tu medida.",
     cierre: "Gracias. Recibimos tu solicitud y te enviaremos la cotización al correo indicado.",
