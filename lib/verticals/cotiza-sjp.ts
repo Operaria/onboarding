@@ -56,7 +56,7 @@ const OPCIONES_MATERIAL_INTERMEDIO = [
 
 // Material de SELLADO (última capa): lista acotada de Cinthia (22-jun).
 const OPCIONES_MATERIAL_SELLADO = [
-  "Bopp Metalizado 20",
+  "Bopp Metalizado 20", "Bopp Brillante 20",
   "Pe Transparente 20", "Pe Transparente 40", "Pe Transparente 60",
   "Pe Transparente 80", "Pe Transparente 100",
   "Pe Blanco 50", "Pe Blanco 100",
