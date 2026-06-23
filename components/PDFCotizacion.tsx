@@ -148,8 +148,8 @@ function Tabla({ p }: { p: ProductoPdf }) {
 }
 
 export function PDFCotizacion({ data }: { data: CotizacionPdfData }) {
-  const granTotal = data.productos.reduce(
-    (s, p) => s + p.tramos.reduce((a, t) => a + (t.total_neto || 0), 0), 0);
+  // Cada tramo es una opción independiente; no sumar totales si hay múltiples tramos por producto
+  const totalTramos = data.productos.reduce((s, p) => s + p.tramos.length, 0);
   const hayBajoMin = data.productos.some((p) => p.tramos.some((t) => t.bajo_minimo));
   return (
     <Document>
@@ -183,12 +183,14 @@ export function PDFCotizacion({ data }: { data: CotizacionPdfData }) {
             </View>
           ))}
 
-          <View style={s.totalRow}>
-            <Text style={s.totalLbl}>Valor total</Text>
-            <Text style={s.totalAmt}>{clp(granTotal)}</Text>
-          </View>
+          {totalTramos === 1 && (
+            <View style={s.totalRow}>
+              <Text style={s.totalLbl}>Valor total</Text>
+              <Text style={s.totalAmt}>{clp(data.productos.reduce((s, p) => s + p.tramos.reduce((a, t) => a + (t.total_neto || 0), 0), 0))}</Text>
+            </View>
+          )}
           <Text style={s.nota}>
-            Valores netos. IVA adicional.{hayBajoMin ? "  (*) cantidad bajo el mínimo de producción." : ""}
+            Valores netos. IVA adicional.{hayBajoMin ? "  (*) cantidad bajo el mínimo de producción." : ""}{totalTramos > 1 ? "  Cada fila es una opción de precio según cantidad." : ""}
           </Text>
 
           <View style={s.cg}>

@@ -262,11 +262,13 @@ export function cotizacionHtml(productos: CotizacionProducto[]): string {
           </tr>`;
         })
         .join("");
+      const tramosCount = p.tramos.length;
+      const nota = tramosCount > 1 ? `<p style="margin:10px 0 0;color:#9E9C96;font-size:11px;font-style:italic;">Cada fila es una opción de precio según cantidad.</p>` : "";
       return `
         <p style="margin:14px 0 4px;font-weight:600;color:#0F1E3A;">${p.etiqueta} · ${p.tipo}${p.preliminar ? " <span style='color:#E8A838;font-weight:400;font-size:12px;'>(preliminar)</span>" : ""}</p>
         <table style="width:100%;border-collapse:collapse;background:#FAF9F6;border-radius:6px;overflow:hidden;">
           ${tramos}
-        </table>`;
+        </table>${nota}`;
     })
     .join("");
 
