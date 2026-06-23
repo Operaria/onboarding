@@ -205,24 +205,25 @@ export async function cotizarSjp(r: Respuestas): Promise<CotizacionProducto[]> {
   return out;
 }
 
-/** Convierte el resultado de cotizarSjp en los datos del PDF branded. */
+/** Convierte el resultado de cotizarSjp en los datos del PDF branded.
+ *  Incluye todos los productos, incluso los que tienen errores (se renderizan como "sin precio").
+ */
 export function cotizacionPdfData(
   num_: string, fecha: string, cliente: string, productos: CotizacionProducto[],
 ): CotizacionPdfData {
   return {
     num: num_, fecha, cliente,
-    productos: productos
-      .map((p) => ({
-        descripcion: p.descripcion,
-        tipo: p.tipo,
-        tramos: p.tramos.filter((t) => !t.error).map((t) => ({
-          unidad: t.unidad, cantidad: t.cantidad,
-          unitario_neto: t.unitario_neto, total_neto: t.total_neto,
-          bajo_minimo: t.bajo_minimo,
-          precio_kilo: t.precio_kilo, kilos: t.kilos, unidades_aprox: t.unidades_aprox,
-        })),
-      }))
-      .filter((p) => p.tramos.length > 0),
+    productos: productos.map((p) => ({
+      descripcion: p.descripcion,
+      tipo: p.tipo,
+      tramos: p.tramos.map((t) => ({
+        unidad: t.unidad, cantidad: t.cantidad,
+        unitario_neto: t.unitario_neto, total_neto: t.total_neto,
+        bajo_minimo: t.bajo_minimo,
+        precio_kilo: t.precio_kilo, kilos: t.kilos, unidades_aprox: t.unidades_aprox,
+        error: t.error, // incluir error para renderizar en PDF si existe
+      })),
+    })),
   };
 }
 

@@ -24,6 +24,7 @@ export type TramoPdf = {
   precio_kilo?: number;
   kilos?: number;
   unidades_aprox?: number;
+  error?: string;
 };
 export type ProductoPdf = {
   descripcion: string;
@@ -104,15 +105,21 @@ function Tabla({ p }: { p: ProductoPdf }) {
           <Text style={[s.th, { flex: 1.5, textAlign: "right" }]}>Precio unitario</Text>
           <Text style={[s.th, { flex: 1.5, textAlign: "right" }]}>Total</Text>
         </View>
-        {p.tramos.map((t, i) => (
-          <View key={i} style={s.tr}>
-            <Text style={[s.td, { flex: 1.2 }]}>{u(t.kilos ?? t.cantidad)} kg{t.bajo_minimo ? " *" : ""}</Text>
-            <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{u(t.unidades_aprox ?? 0)} u</Text>
-            <Text style={[s.td, { flex: 1.4, textAlign: "right" }]}>{clp(t.precio_kilo ?? 0)}</Text>
-            <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{clp(t.unitario_neto)}</Text>
-            <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{clp(t.total_neto)}</Text>
-          </View>
-        ))}
+        {p.tramos.map((t, i) =>
+          t.error ? (
+            <View key={i} style={s.tr}>
+              <Text style={[s.td, { flex: 5, color: "#C1121F" }]}>{u(t.cantidad)} {t.unidad} — sin precio: {t.error}</Text>
+            </View>
+          ) : (
+            <View key={i} style={s.tr}>
+              <Text style={[s.td, { flex: 1.2 }]}>{u(t.kilos ?? t.cantidad)} kg{t.bajo_minimo ? " *" : ""}</Text>
+              <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{u(t.unidades_aprox ?? 0)} u</Text>
+              <Text style={[s.td, { flex: 1.4, textAlign: "right" }]}>{clp(t.precio_kilo ?? 0)}</Text>
+              <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{clp(t.unitario_neto)}</Text>
+              <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{clp(t.total_neto)}</Text>
+            </View>
+          )
+        )}
       </View>
     );
   }
@@ -123,13 +130,19 @@ function Tabla({ p }: { p: ProductoPdf }) {
         <Text style={[s.th, { flex: 1.5, textAlign: "right" }]}>Precio unitario</Text>
         <Text style={[s.th, { flex: 1.5, textAlign: "right" }]}>Total</Text>
       </View>
-      {p.tramos.map((t, i) => (
-        <View key={i} style={s.tr}>
-          <Text style={[s.td, { flex: 2 }]}>{u(t.cantidad)} unid{t.bajo_minimo ? " *" : ""}</Text>
-          <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{clp(t.unitario_neto)}</Text>
-          <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{clp(t.total_neto)}</Text>
-        </View>
-      ))}
+      {p.tramos.map((t, i) =>
+        t.error ? (
+          <View key={i} style={s.tr}>
+            <Text style={[s.td, { flex: 5, color: "#C1121F" }]}>{u(t.cantidad)} {t.unidad} — sin precio: {t.error}</Text>
+          </View>
+        ) : (
+          <View key={i} style={s.tr}>
+            <Text style={[s.td, { flex: 2 }]}>{u(t.cantidad)} unid{t.bajo_minimo ? " *" : ""}</Text>
+            <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{clp(t.unitario_neto)}</Text>
+            <Text style={[s.td, { flex: 1.5, textAlign: "right" }]}>{clp(t.total_neto)}</Text>
+          </View>
+        )
+      )}
     </View>
   );
 }
