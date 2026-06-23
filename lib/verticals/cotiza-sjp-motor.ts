@@ -10,6 +10,7 @@
  * marcan como preliminares. El correo va a revisión interna, no al cliente.
  */
 import type { Respuestas, RespuestaValor } from "../types";
+import type { CotizacionPdfData } from "@/components/PDFCotizacion";
 
 const COTIZADOR_URL =
   process.env.COTIZADOR_URL || "https://cotizador.operaria.cl/api/cotizar";
@@ -39,6 +40,7 @@ type Tramo = {
 export type CotizacionProducto = {
   etiqueta: string;
   tipo: string;
+  descripcion: string; // línea "Doypack de N diseño(s)… Medidas… Estructura…"
   preliminar: boolean; // true para doypack/pouche (motor en proceso)
   tramos: Tramo[];
 };
@@ -132,6 +134,24 @@ function queriesProducto(r: Respuestas, n: number): { tipo: string; preliminar: 
   return { tipo: tipoRaw, preliminar: true, queries };
 }
 
+/** Línea descriptiva del producto n, espejo de la del cotizador. */
+function descProducto(r: Respuestas, n: number): string {
+  const P = `prod${n}_`;
+  const tipo = String(r[`${P}tipo`] || "");
+  const dis = num(r[`${P}disenos`]) || "1";
+  const estr = String(r[`${P}estructura`] || "");
+  const mats = [r[`${P}mat_imp`], r[`${P}mat_med`], r[`${P}mat_sello`]]
+    .filter(Boolean).map(String).join(" + ");
+  const cola = estr ? ` Estructura ${estr}${mats ? `: ${mats}` : ""}.` : "";
+  if (tipo === "Film") {
+    const med = `${num(r[`${P}film_largo`])} × ${num(r[`${P}film_alto`])} mm`;
+    return `Film de ${dis} diseño(s) a 4 colores. Medidas: ${med}.${cola}`;
+  }
+  const fuelle = r[`${P}fuelle`] ? ` + ${num(r[`${P}fuelle`])}` : "";
+  const med = `${num(r[`${P}ancho`])} × ${num(r[`${P}alto`])}${fuelle} mm`;
+  return `${tipo || "Envase"} de ${dis} diseño(s) a 4 colores. Medidas: ${med}.${cola}`;
+}
+
 async function pedirMotor(qs: string): Promise<Record<string, unknown> | null> {
   try {
     const resp = await fetch(`${COTIZADOR_URL}?${qs}`, {
@@ -180,9 +200,30 @@ export async function cotizarSjp(r: Respuestas): Promise<CotizacionProducto[]> {
         unidades_aprox: d.unidades != null ? Number(d.unidades) : undefined,
       });
     }
-    out.push({ etiqueta, tipo: plan.tipo, preliminar: plan.preliminar, tramos });
+    out.push({ etiqueta, tipo: plan.tipo, descripcion: descProducto(r, n), preliminar: plan.preliminar, tramos });
   }
   return out;
+}
+
+/** Convierte el resultado de cotizarSjp en los datos del PDF branded. */
+export function cotizacionPdfData(
+  num_: string, fecha: string, cliente: string, productos: CotizacionProducto[],
+): CotizacionPdfData {
+  return {
+    num: num_, fecha, cliente,
+    productos: productos
+      .map((p) => ({
+        descripcion: p.descripcion,
+        tipo: p.tipo,
+        tramos: p.tramos.filter((t) => !t.error).map((t) => ({
+          unidad: t.unidad, cantidad: t.cantidad,
+          unitario_neto: t.unitario_neto, total_neto: t.total_neto,
+          bajo_minimo: t.bajo_minimo,
+          precio_kilo: t.precio_kilo, kilos: t.kilos, unidades_aprox: t.unidades_aprox,
+        })),
+      }))
+      .filter((p) => p.tramos.length > 0),
+  };
 }
 
 /** Bloque HTML con la cotización, para sumar al correo del submit. */

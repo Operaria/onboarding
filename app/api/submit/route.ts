@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { PDFDiagnostico } from "@/components/PDFDiagnostico";
+import { PDFCotizacion } from "@/components/PDFCotizacion";
 import { formatDate } from "@/lib/utils";
 import { getVertical } from "@/lib/verticals";
 import { entradaLabels, OPT_NO_TENGO_GOOGLE } from "@/lib/verticals/barber";
-import { cotizarSjp, cotizacionHtml } from "@/lib/verticals/cotiza-sjp-motor";
+import { cotizarSjp, cotizacionHtml, cotizacionPdfData } from "@/lib/verticals/cotiza-sjp-motor";
 import type { SubmitPayload, RespuestaValor, Bloque } from "@/lib/types";
 import React from "react";
 
@@ -129,10 +130,26 @@ export async function POST(req: NextRequest) {
     // así que corremos el motor oficial y sumamos el resultado al MISMO correo
     // (va a revisión interna, no directo al cliente). Si el motor falla, el
     // correo igual sale con las respuestas — no bloqueamos el submit.
+    // PDF branded de cotización (solo cotiza-sjp). Se adjunta además del
+    // Levantamiento de respuestas. N° provisional: Cinthia asigna el correlativo
+    // formal (5280→) al emitir; acá va una referencia por fecha.
+    let cotPdfBuffer: Buffer | null = null;
+    let cotPdfName = "";
     if (vertical.id === "cotiza-sjp") {
       try {
         const cotizacion = await cotizarSjp(payload.respuestas);
         html += cotizacionHtml(cotizacion);
+        const d = new Date(payload.timestamp || Date.now());
+        const z = (x: number) => String(x).padStart(2, "0");
+        const ref = `SJ-${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}`;
+        const cliente = String(payload.respuestas.cli_razon || payload.nombreFormateado || "Cliente");
+        const pdfData = cotizacionPdfData(ref, fecha, cliente, cotizacion);
+        if (pdfData.productos.length) {
+          const cotEl = React.createElement(PDFCotizacion, { data: pdfData });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          cotPdfBuffer = await renderToBuffer(cotEl as any);
+          cotPdfName = `Cotizacion-${ref}.pdf`;
+        }
       } catch (e) {
         console.error("auto-cotización cotiza-sjp falló:", e);
       }
@@ -149,12 +166,16 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(apiKey);
     const filename = `Levantamiento-${payload.negocio || payload.cliente}.pdf`;
+    const attachments: { filename: string; content: Buffer }[] = [
+      { filename, content: pdfBuffer },
+    ];
+    if (cotPdfBuffer) attachments.unshift({ filename: cotPdfName, content: cotPdfBuffer });
     const { error } = await resend.emails.send({
       from,
       to,
       subject,
       html,
-      attachments: [{ filename, content: pdfBuffer }],
+      attachments,
     });
     if (error) {
       return NextResponse.json({ success: false, error: error.message ?? "Error Resend" }, { status: 500 });
