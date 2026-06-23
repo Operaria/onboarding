@@ -40,15 +40,27 @@ const OPCIONES_TIPO = [
 // Mismos sustratos, estructuras y accesorios que usa Cinthia para cotizar,
 // para que el dato del cliente entre estructurado y sin vacíos.
 
-// 29 sustratos en el mismo orden del cotizador (SUSTRATOS de index.html).
-const OPCIONES_MATERIAL = [
-  "Bopp Matte 17", "Bopp Metaliz. 15", "Bopp Metaliz. 17", "Bopp Metaliz. 20",
-  "Bopp Perlesc. 20", "Pet Metaliz. 12", "Pet Matte 12", "Pet Brill. 12",
-  "Pe Transp. 30", "Pe Transp. 40", "Pe Bco 40", "Pe Transp. 60", "Pe Bco 60",
-  "Pe Transp. 80", "Pe Bco 80", "Pe Transp. 100", "Pe Bco 100", "Pe Bco 160",
-  "Bopp Brill. 20", "Bopp Matte 20", "Bopp Perlesc. 25", "Bopp Cpp SL 30",
-  "Bopp Metaliz. 25", "Bopp Cpp SL 40", "Bopp Cpp SL 80", "NK Transp. 23",
-  "NK Metaliz. 23", "Biopbs Transp. 51", "Pe Bco 140",
+
+// Material de IMPRESIÓN (capa 1): lista acotada que definió Cinthia (22-jun).
+// La capa de impresión solo usa estos 4 sustratos imprimibles.
+const OPCIONES_MATERIAL_IMPRESION = [
+  "Bopp Matte 20", "Bopp Brillante 20",
+  "Pet Matte 12", "Pet Brillante 12",
+];
+
+// Material INTERMEDIO (capa 2, solo trilámina): todos los metalizados (Cinthia 22-jun).
+const OPCIONES_MATERIAL_INTERMEDIO = [
+  "Bopp Metalizado 15", "Bopp Metalizado 17", "Bopp Metalizado 20",
+  "Bopp Metalizado 25", "Pet Metalizado 12", "NK Metalizado 23",
+];
+
+// Material de SELLADO (última capa): lista acotada de Cinthia (22-jun).
+const OPCIONES_MATERIAL_SELLADO = [
+  "Bopp Metalizado 20",
+  "Pe Transparente 20", "Pe Transparente 40", "Pe Transparente 60",
+  "Pe Transparente 80", "Pe Transparente 100",
+  "Pe Blanco 50", "Pe Blanco 100",
+  "Bopp CPP 40", "Bopp CPP 80",
 ];
 
 // Estructura define cuántas capas de material lleva la bolsa.
@@ -217,21 +229,21 @@ function camposProducto(n: number): Pregunta[] {
       id: `${P}mat_imp`,
       tipo: "select",
       label: "Material de impresión (capa 1)",
-      opciones: OPCIONES_MATERIAL,
+      opciones: OPCIONES_MATERIAL_IMPRESION,
       mostrarSi: gate(n),
     },
     {
       id: `${P}mat_med`,
       tipo: "select",
       label: "Material intermedio (capa 2)",
-      opciones: OPCIONES_MATERIAL,
+      opciones: OPCIONES_MATERIAL_INTERMEDIO,
       mostrarSi: gate(n, { id: `${P}estructura`, igual: "Trilámina" }),
     },
     {
       id: `${P}mat_sello`,
       tipo: "select",
       label: "Material de sellado (última capa)",
-      opciones: OPCIONES_MATERIAL,
+      opciones: OPCIONES_MATERIAL_SELLADO,
       mostrarSi: gate(n, { id: `${P}estructura`, distintoDe: "Monolámina" }),
     },
 
