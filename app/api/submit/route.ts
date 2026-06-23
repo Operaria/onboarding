@@ -158,8 +158,10 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.FROM_EMAIL || "onboarding@resend.dev";
     const fallback = process.env.DESTINATION_EMAIL ?? "";
-    // Cada encuesta puede tener su propio correo destino; si no, cae al global.
-    const to = vertical.destino ?? fallback;
+    // cotiza-sjp: envía a dos correos siempre; otras encuestas usan destino único.
+    const to = vertical.id === "cotiza-sjp"
+      ? ["sjpcotizaciones@gmail.com", "aorellana@sjp.cl"]
+      : vertical.destino ?? fallback;
     if (!apiKey || !to) {
       return NextResponse.json({ success: false, error: "Faltan variables de entorno" }, { status: 500 });
     }
